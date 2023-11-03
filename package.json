@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "cookies-next": "^4.0.0",
+    "pocketbase": "^0.19.0",
+    "reactflow": "^11.9.4"
+  }
+}
