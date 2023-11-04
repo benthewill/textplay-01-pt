@@ -1,4 +1,4 @@
-import { SignUp } from "@/components/User/SignUp";
+import { SignUp } from "@/components/user/SignUp";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 

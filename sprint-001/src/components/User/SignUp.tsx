@@ -4,7 +4,7 @@ import {PocketBaseInit} from '@/lib/db/pocketbaseinit'
 import PocketBase from 'pocketbase'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card'
-import { InputBuild } from '../Shot/InputBuild'
+import { InputBuild } from '../shot/InputBuild'
 import { Form } from '../ui/form'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input';

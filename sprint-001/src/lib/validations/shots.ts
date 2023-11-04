@@ -29,21 +29,19 @@ export let logicRequirement = {
 }
 
 export let defaultNarration = {
-    narrationID: " ",
     narrationContent: " ",
     requirements: [defaultRequirement]
 }
 
 export let defaultDecision = {
-    decisionID: " ",
     decisionContent: " ",
     requirements: [defaultRequirement]
 }
 
 
 export let defaultShot = {
+    shotName: "",
     shotNum: "",
-    shotID: "",
     sceneID: "",
     sequenceID: "",
     possibleNarrations: [

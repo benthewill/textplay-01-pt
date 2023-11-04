@@ -35,11 +35,13 @@ import { InputBuild } from "./InputBuild";
 import { JsonView, allExpanded, darkStyles, defaultStyles } from 'react-json-view-lite';
 import 'react-json-view-lite/dist/index.css';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useMutation } from "@tanstack/react-query";
+import { createShot } from "@/lib/db/shots";
 
 
 export function ShotInput () {
     const methods = useForm({
-        mode: "onChange",
+        mode: "onSubmit",
         defaultValues: defaultShot
     })
 
@@ -78,15 +80,19 @@ export function ShotInput () {
 
     const formWatch = useWatch({control})
 
-    const onSubmit = async (data:FieldValues) => {
-        console.log(data);
+    const Mutate = async (data:FieldValues) => {
+        // console.log(data);
+        // console.log(JSON.stringify(data));
+
+        createShot(data)
+        // const {data:returned, mutate} = useMutation({
+        //     mutationFn: createShot
+        // })
+        // mutate(data)
     }
 
     return (
         <div className="flex flex-row">
-            <div className="flex-none font-mono text-xs font-extralight">
-                <JsonView data={formWatch} shouldExpandNode={allExpanded}/>
-            </div>
             <div className="grow">
                 <Card>
                 <CardHeader>
@@ -98,11 +104,23 @@ export function ShotInput () {
                 <CardContent>
                     <Form {...methods}>
                     <FormProvider {...methods}>
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form onSubmit={handleSubmit(Mutate)}>
                         <InputBuild
-                            fieldName={"shotNum"}
+                            fieldName={"shotName"}
                             inputType={"text"}
-                            nolabel
+                            fieldLabel="Shot Name"
+                            {...control}
+                        />
+                        <InputBuild
+                            fieldName={"sceneID"}
+                            inputType={"number"}
+                            fieldLabel="Scene Number"
+                            {...control}
+                        />
+                        <InputBuild
+                            fieldName={"sequenceID"}
+                            inputType={"number"}
+                            fieldLabel="Sequence Number"
                             {...control}
                         />
                         {/* NARRATION  */}
@@ -119,7 +137,9 @@ export function ShotInput () {
                                             <CardDescription>All Possible Narrations</CardDescription>
                                         </div>
                                         <div>
-                                            <Button onClick={() => posNarrAppend(defaultNarration)} variant={"outline"} size={"sm"}>+ Narration</Button>
+                                            <Button
+                                            type="button"
+                                            onClick={() => posNarrAppend(defaultNarration)} variant={"outline"} size={"sm"}>+ Narration</Button>
                                         </div>
                                     </CardHeader>
                                     <CardContent>
@@ -205,7 +225,7 @@ function RequirementGates ({reqType, parentIdx, control}:any) {
                     <h3 className=" font-semibold">Requirements</h3>
                     <p className=" font-light text-sm">This is where we put the requirements</p>
                 </div>
-                <Button onClick={() => reqGateAppend(defaultRequirement)} variant={"outline"} size={"sm"}>+ Gate</Button>
+                <Button type="button" onClick={() => reqGateAppend(defaultRequirement)} variant={"outline"} size={"sm"}>+ Gate</Button>
             </div>
             <div>
             </div>
@@ -240,10 +260,6 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, control}:any) {
             control,
             name: `${reqType}[${grandParentIdx}].requirements[${gateIdx}].reqData`
     })
-    console.log(reqType);
-    console.log(grandParentIdx);
-    console.log(gateIdx);
-    console.log(reqItemFields);
     return (
         <div>
             {

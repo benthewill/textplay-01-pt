@@ -1,5 +1,5 @@
-import { ShotInput } from "@/components/Shot/ShotInput";
-import { CurrentUser } from "@/components/User/CurrentUser";
+import { ShotInput } from "@/components/shot/ShotInput";
+import { CurrentUser } from "@/components/user/CurrentUser";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,19 +14,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import 'reactflow/dist/style.css';
-async function getShots () {
-  const pb = await PocketBaseInit()
 
-  const records = await pb.collection('shots').getFullList({
-    sort: '-created',
-    expand: 'possibleNarrations.requirements.requirementItems'
-  });
-
-  return records
-}
 
 export default async function Home() {
-  const shots = await getShots()
+
 
   return (
     <main className="flex min-h-screen flex-col justify-start p-24">
@@ -37,17 +28,19 @@ export default async function Home() {
       </div>
       <div>
           <Link href="/graph">
-            <Button variant={"outline"}>
+            <Button className="m-4" variant={"outline"}>
               <p className=" text-lg">
                 Create Graphs
               </p>
             </Button>
           </Link>
-      </div>
-      <div>
-        <p>
-          {JSON.stringify(shots)}
-        </p>
+          <Link href="/shots">
+            <Button className="m-4" variant={"outline"}>
+              <p className=" text-lg">
+                View Shots
+              </p>
+            </Button>
+          </Link>
       </div>
     </main>
   )

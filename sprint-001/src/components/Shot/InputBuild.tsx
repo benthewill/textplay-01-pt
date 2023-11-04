@@ -34,6 +34,35 @@ export function InputBuild ({fieldName, fieldLabel, noLabel = false, defaultValu
                 />
             )
         }
+        case("number"): {
+            return (
+                <FormField
+                    {...rest}
+                    name={fieldName}
+                    control={control}
+                    render={
+                    ({field}:any) => {
+                        return (
+                        <FormItem>
+                            {
+                                !noLabel ?
+                                <FormLabel>{fieldLabel}</FormLabel> :
+                                <></>
+                            }
+                            <FormControl>
+                            <Input type="number" {...field} />
+                            </FormControl>
+                            <FormDescription>
+                                {fieldDescription}
+                            </FormDescription>
+                            <FormMessage />
+                        </FormItem>
+                        )
+                    }
+                    }
+                />
+            )
+        }
         case("password"): {
             return (
                 <FormField

@@ -1,8 +1,8 @@
 "use client";
 
-import FlowWithProvider from '@/components/Flow/FlowProvider';
-import { TextUpdaterNode } from '@/components/Flow/Nodes/ShotNode';
-import { CurrentUser } from '@/components/User/CurrentUser';
+import FlowWithProvider from '@/components/flow/FlowProvider';
+import { TextUpdaterNode } from '@/components/flow/nodes/ShotNode';
+import { CurrentUser } from '@/components/user/CurrentUser';
 import React, {useCallback, useMemo} from 'react';
 import ReactFlow, { addEdge, useEdgesState, useNodesState, MiniMap, Background, Controls, applyNodeChanges, applyEdgeChanges, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
