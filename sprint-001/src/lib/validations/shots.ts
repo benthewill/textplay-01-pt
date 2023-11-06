@@ -1,8 +1,27 @@
-export let requirementTypes = [
+export let requirementCategories = [
     {value: "inventory", label: "Inventory"},
     {value: "infection", label: "Infection"},
     {value: "access", label: "Access"}
 ]
+
+export let inventoryItems = [
+    {value: "clock", label: "Clock"},
+    {value: "book", label: "Book"},
+    {value: "alien", label: "Access"}
+]
+
+export let infectionItems = [
+    {value: "black", label: "Black"},
+    {value: "white", label: "White"},
+    {value: "gray", label: "Gray"}
+]
+
+export let accessItems = [
+    {value: "manor", label: "Manor"},
+    {value: "405", label: "405"},
+    {value: "305", label: "305"}
+]
+
 export let operatorTypes = [
     {value: "=", label: "="},
     {value: ">", label: ">"},
@@ -12,39 +31,32 @@ export let operatorTypes = [
 ]
 export let gateTypes = ["item", "and", "or"]
 
-export let defaultRequirement = {
-    gate: "item",
-    reqData: [
-    {
-        requirementID: " ",
-        type: " ",
-        requirement: " ",
-        amount: 0,
-        operator: " "
-        }
-    ]
+export let reqItem = {
+    requirementID: " ",
+    category: "",
+    item: "",
+    requirement: "",
+    amount: "",
+    operator: ""
 }
 
-export let logicRequirement = {
+export let defaultRequirement = {
+    gate: "item",
+    reqData: [reqItem]
+}
+
+export let ANDRequirement = {
     gate: "and",
-    reqData: [
-        {
-        requirementID: " ",
-        type: " ",
-        requirement: " ",
-        amount: 0,
-        operator: " "
-        }
-    ]
+    reqData: [reqItem]
 }
 
 export let defaultNarration = {
-    narrationContent: " ",
+    narrationContent: "",
     requirements: [defaultRequirement]
 }
 
 export let defaultDecision = {
-    decisionContent: " ",
+    decisionContent: "",
     requirements: [defaultRequirement]
 }
 

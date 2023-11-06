@@ -2,10 +2,12 @@
 
 import FlowWithProvider from '@/components/flow/FlowProvider';
 import { TextUpdaterNode } from '@/components/flow/nodes/ShotNode';
+import { ShotInput } from '@/components/shot/ShotInput';
 import { CurrentUser } from '@/components/user/CurrentUser';
 import React, {useCallback, useMemo} from 'react';
 import ReactFlow, { addEdge, useEdgesState, useNodesState, MiniMap, Background, Controls, applyNodeChanges, applyEdgeChanges, Panel } from 'reactflow';
 import 'reactflow/dist/style.css';
+
 
 const initialNodes:any[] = [
     { id: '1', position: { x: 0, y: 0 }, data: { label: '1' } },
@@ -36,26 +38,39 @@ export default function Graph() {
     );
 
     return (
-        <div style={{ width: '100vw', height: '100vh' }}>
-            <FlowWithProvider
-                nodeTypes={nodeTypes}
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                fitView
-                className="bg-zinc-100"
-            >
-                <Panel position="bottom-left" className="pl-12 pb-2">
-                    <CurrentUser />
-                    <h1 className=" text-5xl font-extrabold tracking-tight lg:text-5xl">Graph View</h1>
-                    <h2 className=" text-3xl tracking-tight lg:text-3xl">01 - painting pretty.</h2>
-                </Panel>
-                <Controls />
-                <MiniMap />
-                <Background gap={12} size={1}/>
-            </FlowWithProvider>
+        <div style={{ width: '100vw', height: '100vh' }} className='flex flex-row'>
+
+            <div className="w-full" >
+                <FlowWithProvider
+                    nodeTypes={nodeTypes}
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    fitView
+                    className="bg-zinc-100"
+                >
+                    <Panel position="top-left" className="">
+                        <CurrentUser />
+                    </Panel>
+                    <Panel position='top-right'>
+                        <p className=" text-end text-xl tracking-tight leading-tight">
+                            01 - painting pretty.  <br/>
+                            Graph View
+                        </p>
+                    </Panel>
+                    <Controls />
+                    <MiniMap />
+                    <Background gap={12} size={1}/>
+                </FlowWithProvider>
+            </div>
+            <div className=" w-2/3 flex flex-col">
+                <ShotInput/>
+                <div className='flex flex-col justify-center bg-zinc-100 border-x-3 h-full'>
+                    <p className=' font-mono text-2xl text-center font-semibold text-slate-600'>The preview would be here</p>
+                </div>
+            </div>
         </div>
     );
 }

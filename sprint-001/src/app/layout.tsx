@@ -3,10 +3,11 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import Providers from '@/utils/queryProvider';
 import { QueryClient, QueryClientProvider } from 'react-query';
+import { UIProviders } from '@/utils/uiProvider';
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const runtime = 'edge'
+// export const runtime = 'edge'
 
 export const metadata: Metadata = {
   title: 'Textplay',
@@ -23,9 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers>
-            {children}
-        </Providers>
+        <UIProviders>
+          <Providers>
+              {children}
+          </Providers>
+        </UIProviders>
       </body>
     </html>
   )

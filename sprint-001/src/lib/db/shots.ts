@@ -54,7 +54,7 @@ export async function createShot (data:any) {
         await updateNarration(narrID, reqLogicArr)
     }
 
-    console.log("Possible Narrations", possibleNarrationsArr);
+    console.log("Possible Narrations", possibleNarrationsArr)
 
     await updateShot()
 
