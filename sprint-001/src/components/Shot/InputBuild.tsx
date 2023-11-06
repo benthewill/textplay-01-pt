@@ -1,73 +1,17 @@
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { Input } from "../ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "../ui/select"
 
 export function InputBuild ({fieldName, fieldLabel, noLabel = false, defaultValue, inputType, options, fieldDescription, control, ...rest} :any) {
 
     switch(inputType){
-        case("text"): {
-            return (
-                <FormField
-                    {...rest}
-                    name={fieldName}
-                    control={control}
-                    render={
-                    ({field}:any) => {
-                        return (
-                        <FormItem>
-                            {
-                                !noLabel ?
-                                <FormLabel>{fieldLabel}</FormLabel> :
-                                <></>
-                            }
-                            <FormControl>
-                            <Input {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                {fieldDescription}
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )
-                    }
-                    }
-                />
-            )
-        }
-        case("number"): {
-            return (
-                <FormField
-                    {...rest}
-                    name={fieldName}
-                    control={control}
-                    render={
-                    ({field}:any) => {
-                        return (
-                        <FormItem>
-                            {
-                                !noLabel ?
-                                <FormLabel>{fieldLabel}</FormLabel> :
-                                <></>
-                            }
-                            <FormControl>
-                            <Input type="number" {...field} />
-                            </FormControl>
-                            <FormDescription>
-                                {fieldDescription}
-                            </FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                        )
-                    }
-                    }
-                />
-            )
-        }
+        case("text"):
+        case("number"):
         case("password"): {
             return (
                 <FormField
-                    {...rest}
                     name={fieldName}
+                    key={fieldName}
                     control={control}
                     render={
                     ({field}:any) => {
@@ -75,27 +19,33 @@ export function InputBuild ({fieldName, fieldLabel, noLabel = false, defaultValu
                         <FormItem>
                             {
                                 !noLabel ?
-                                <FormLabel>{fieldLabel}</FormLabel> :
+                                <FormLabel
+                                htmlFor={fieldName}
+                                >{fieldLabel}</FormLabel> :
                                 <></>
                             }
                             <FormControl>
-                            <Input type="password" {...field} />
+                            <Input
+                                type={inputType} 
+                                name={fieldName}
+                                key={fieldName}
+                                id={fieldName}
+                            {...field} />
                             </FormControl>
                             <FormDescription>
                                 {fieldDescription}
                             </FormDescription>
-                            <FormMessage />
                         </FormItem>
                         )
                     }
                     }
+                    {...rest}
                 />
             )
         }
         case("select"): {
             return (
                 <FormField
-                    {...rest}
                     name={fieldName}
                     control={control}
                     render={
@@ -107,34 +57,52 @@ export function InputBuild ({fieldName, fieldLabel, noLabel = false, defaultValu
                                 <FormLabel>{fieldLabel}</FormLabel> :
                                 <></>
                             }
-                            <FormControl>
-                                <Select
+                            <select
+                                name={fieldName}
+                                onChange={field.onChange} 
+                                defaultValue={defaultValue}
+                                >
+                                {
+                                    options.map((option:any) => {
+                                        return (
+                                            <option 
+                                            key={option.value} 
+                                            value={option.value} 
+                                            id={option.id}>
+                                                {option.label}
+                                            </option>
+                                        )
+                                    })
+                                }
+                            </select>
+                                {/* <Select
                                     onValueChange={field.onChange}
-                                    defaultValue={defaultValue}
+                                    // defaultValue={defaultValue}
                                     >
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder={fieldLabel}/>
+                                            <SelectValue/>
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
+                                        <SelectGroup>
+                                            <SelectLabel>{fieldLabel}</SelectLabel>
                                         {
                                             options.map((option:any, optionIdx:any) => {
                                                 return (
-                                                    <div key={option}>
                                                         <SelectItem
-                                                        value={option}>
-                                                            <p className="capitalize">
-                                                                {option}
-                                                            </p>
+                                                            id={option.id}
+                                                            key={option.value}
+                                                            value={option.value}>
+                                                                {option.label}
                                                         </SelectItem>
-                                                    </div>
                                                 )
                                             })
                                         }
+                                        </SelectGroup>
                                     </SelectContent>
-                                </Select>
-                            </FormControl>
+                                </Select> */}
+
                             <FormDescription>
                                 {fieldDescription}
                             </FormDescription>
@@ -143,6 +111,7 @@ export function InputBuild ({fieldName, fieldLabel, noLabel = false, defaultValu
                         )
                     }
                     }
+                    {...rest}
                 />
             )
         }

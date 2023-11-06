@@ -2,7 +2,6 @@
 
 import { PocketBaseInit} from '@/lib/db/pocketbaseinit';
 import PocketBase from 'pocketbase'
-import { getCookie } from "cookies-next";
 import { useEffect, useState } from "react";
 import { GetUser, LogOutUser } from '@/state/user';
 import { Button } from '../ui/button';

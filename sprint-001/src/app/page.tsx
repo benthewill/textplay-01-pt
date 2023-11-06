@@ -9,7 +9,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { PocketBaseInit } from "@/lib/db/pocketbaseinit";
-import {getCookie} from 'cookies-next'
 import Link from "next/link";
 import { useState } from "react";
 

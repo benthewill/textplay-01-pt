@@ -1,5 +1,15 @@
-export let requirementTypes = ["inventory", "infection", "access"]
-export let operatorTypes = ["=", ">", "<", ">=", "<="]
+export let requirementTypes = [
+    {value: "inventory", label: "Inventory"},
+    {value: "infection", label: "Infection"},
+    {value: "access", label: "Access"}
+]
+export let operatorTypes = [
+    {value: "=", label: "="},
+    {value: ">", label: ">"},
+    {value: "<", label: "<"},
+    {value: "<=", label: "<="},
+    {value: ">=", label: ">="}
+]
 export let gateTypes = ["item", "and", "or"]
 
 export let defaultRequirement = {

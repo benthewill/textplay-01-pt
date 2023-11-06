@@ -94,14 +94,14 @@ export function ShotInput () {
     return (
         <div className="flex flex-row">
             <div className="grow">
-                <Card>
-                <CardHeader>
+                <Card className=" rounded-none shadow-2xl">
+                <CardHeader className="p-4 ">
                     <CardTitle>
                             Create a new shot
                     </CardTitle>
                     <CardDescription>Insert Details here</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-4">
                     <Form {...methods}>
                     <FormProvider {...methods}>
                     <form onSubmit={handleSubmit(Mutate)}>
@@ -126,8 +126,8 @@ export function ShotInput () {
                         {/* NARRATION  */}
                         <Tabs defaultValue="possibleNarrations">
                             <TabsList className=" grid w-full grid-cols-2">
-                                <TabsTrigger value="possibleNarrations">Narrations</TabsTrigger>
-                                <TabsTrigger value="possibleDecisions">Decisions</TabsTrigger>
+                                <TabsTrigger type="button" value="possibleNarrations">Narrations</TabsTrigger>
+                                <TabsTrigger type="button" value="possibleDecisions">Decisions</TabsTrigger>
                             </TabsList>
                             <TabsContent value="possibleNarrations">
                                 <Card>

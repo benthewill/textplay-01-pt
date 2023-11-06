@@ -10,7 +10,6 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { setCookie } from 'cookies-next';
 import { CurrentUser } from './CurrentUser';
 import { LogInUser } from '@/state/user';
 
