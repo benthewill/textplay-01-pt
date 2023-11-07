@@ -98,7 +98,6 @@ export function InputBuild ({fieldName, register, fieldLabel, noLabel = false, d
                                     maxRows={6}
                                     minRows={6}
                                     variant="bordered"
-                                    type={inputType}
                                     name={fieldName}
                                     label={fieldLabel}
                                     key={fieldName}

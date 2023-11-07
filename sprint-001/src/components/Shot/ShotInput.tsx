@@ -113,7 +113,7 @@ export function ShotInput () {
                     <form onSubmit={handleSubmit(Mutate)}>
                         <InputBuild
                             fieldName={"shotName"}
-                            inputType={"text"}
+                            inputType="text"
                             fieldLabel="Shot Name"
                             {...control}
                         />
@@ -121,7 +121,7 @@ export function ShotInput () {
                             <div className=" w-full">
                                 <InputBuild
                                     fieldName={"sceneID"}
-                                    inputType={"number"}
+                                    inputType="number"
                                     fieldLabel="Scene Number"
                                     {...control}
                                 />
@@ -129,7 +129,7 @@ export function ShotInput () {
                             <div className=" w-full">
                                 <InputBuild
                                     fieldName={"sequenceID"}
-                                    inputType={"number"}
+                                    inputType="number"
                                     fieldLabel="Sequence Number"
                                     {...control}
                                 />
@@ -485,7 +485,7 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
             }
             {
                 gate === "and" &&
-                <Button type="button" onClick={() => reqItemAppend(reqItem)} variant={"outline"} size={"sm"}>+ Item</Button>
+                <Button type="button" onClick={() => reqItemAppend(reqItem)} variant={"bordered"} size={"sm"}>+ Item</Button>
             }
         </div>
     )

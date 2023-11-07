@@ -17,6 +17,46 @@ export async function getShot (id:string) {
     return records
 }
 
+export async function updateNarration (narrID:any, newData:any) {
+    const pb = await PocketBaseInit()
+    const record = await pb.collection('narration').update(narrID, newData)
+    return record
+
+
+}
+
+export async function createNarration (newData:any, shotID:string) {
+    const pb = await PocketBaseInit()
+    const newNarrRecord = {
+        "shotID" : shotID,
+        ...newData
+    }
+    const record = await pb.collection('narration').create(newNarrRecord)
+
+    const newNarrAppend = {
+        "possibleNarrations+" : record?.id
+    }
+    const updateShot = await pb.collection('shots').update(shotID, newNarrAppend)
+
+    // return {"newNarrRecord" : record, "updatedShot" : updateShot}
+}
+
+export async function getSequenceFromID (id:string) {
+    const pb = await PocketBaseInit()
+
+    const sequence = await pb.collection('sequences').getOne(id)
+
+    return sequence
+}
+
+export async function getSceneFromID (id:string) {
+    const pb = await PocketBaseInit()
+
+    const scene = await pb.collection('scenes').getOne(id)
+
+    return scene
+}
+
 export async function createShot (data:any) {
     const pb = await PocketBaseInit()
 
