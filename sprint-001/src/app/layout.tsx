@@ -23,7 +23,7 @@ export default function RootLayout({
   // const client = new QueryClient()
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-mono">
         <UIProviders>
           <Providers>
               {children}

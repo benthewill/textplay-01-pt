@@ -6,10 +6,10 @@ import {useQuery, useQueryClient} from '@tanstack/react-query'
 import { PocketBaseInit } from '@/lib/db/pocketbaseinit'
 import { useForm, FieldValues } from 'react-hook-form'
 import { ShotSub } from '@/components/shot/ShotSub'
+import { ShotSub2 } from '@/components/shot/ShotSub2'
 
 export default function GetShot({params} : { params: {id:string}}) {
     const queryClient = useQueryClient()
-    console.log(params.id);
     
     // const {data, isLoading, isError} =  useQuery({ queryFn: () => getShot(params.id), queryKey: ["shot", params.id]})
     // const methods = useForm({
@@ -52,6 +52,7 @@ export default function GetShot({params} : { params: {id:string}}) {
     return (
         <div className='flex flex-col w-3/4 content-start'>
             <ShotSub shotID={params.id}/>
+            {/* <ShotSub2 shotID={params.id}/> */}
             {/* <Card className=' content-center' radius='none'>
                 <CardHeader>
                     <form onBlur={handleSubmit(updateField)}>

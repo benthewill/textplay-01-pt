@@ -1,7 +1,9 @@
 "use client";
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useEffect, useState} from "react";
 import { useForm, SubmitHandler, useFieldArray, FormProvider, useFormContext, FieldValues, useWatch, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod";
+import { DevTool } from "@hookform/devtools";
+import { useEffectOnce } from 'usehooks-ts'
 import {
     Card,
     CardHeader,
@@ -17,18 +19,18 @@ import { gateTypes, defaultRequirement, operatorTypes, defaultDecision, defaultN
 import { InputBuild } from "./InputBuild";
 import {Tabs, Tab} from '@nextui-org/react'
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration } from "@/lib/db/shots";
+import { createShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration, deleteNarrationByID } from "@/lib/db/shots";
 import { Textarea } from "@nextui-org/react";
 import { PocketBaseInit } from "@/lib/db/pocketbaseinit";
 
 export function ShotSub ({shotID}:{shotID:string}) {
     const queryClient = useQueryClient()
-    const {data, isLoading, isError, refetch} =  useQuery({ queryFn: () => getShot(shotID), queryKey: ["shot", shotID], notifyOnChangeProps: "all"})
+    const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({ queryFn: () => getShot(shotID), queryKey: ["shot", shotID], notifyOnChangeProps: "all"})
 
     const methods = useForm({
-        mode: "onBlur",
+        mode: "onSubmit",
         reValidateMode: "onChange",
-        defaultValues: async () =>  await queryClient.getQueryData(['shot', shotID])
+        defaultValues: data
     })
 
     const fetchedSequenceID = data?.sequenceID
@@ -46,8 +48,13 @@ export function ShotSub ({shotID}:{shotID:string}) {
         control,
         reset,
         resetField,
+        setValue,
+        setFocus,
         formState: {
-            isValid
+            isValid,
+            isSubmitting,
+            isSubmitted,
+            isSubmitSuccessful
         },
         getFieldState
     } = methods
@@ -60,7 +67,8 @@ export function ShotSub ({shotID}:{shotID:string}) {
         swap:posNarrSwap,
         insert:posNarrInsert,
         move: posNarrMove,
-        update: posNarrUpdate} = useFieldArray({
+        update: posNarrUpdate,
+    } = useFieldArray({
         control,
         name: `expand.possibleNarrations`
     })
@@ -72,6 +80,16 @@ export function ShotSub ({shotID}:{shotID:string}) {
             })
         })
     }, [data, posNarrUpdate])
+
+    // useEffect(() => {
+    //     refetch()
+    //     reset(async () =>  await queryClient.getQueryData(['shot', shotID]))
+    //     data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
+    //         Object.keys(field).forEach((key) => {
+    //             posNarrUpdate(index, field[key])
+    //         })
+    //     })
+    // },[data?.expand?.possibleNarrations, posNarrUpdate, queryClient, refetch, reset, shotID])
     
     const {
         fields:posDecFields,
@@ -85,73 +103,119 @@ export function ShotSub ({shotID}:{shotID:string}) {
         name: `expand.possibleDecisions`
     })
 
-    const formWatch = useWatch({control})
+    const formWatch = useWatch({
+        control,
+        defaultValue: getValues('expand.possibleNarrations'),
+        name: `expand.possibleNarrations`})
 
-    const [selectedNarrTab, setSelectedNarrTab] = useState('narr0')
+    const [selectedNarrTab, setSelectedNarrTab] = useState(0)
     const [selectedDecTab, setSelectedDecTab] = useState('dec0')
+    const [narrToDel, setNarrToDel] = useState([''])
 
-    const {mutate:addBlankNarration} = useMutation({
+
+    const {mutate:addBlankNarration, data: blankNarrData} = useMutation({
         mutationFn: () => createNarration({}, shotID),
         mutationKey: ["blank narration for", shotID],
         onSuccess: async () => {
-            // await queryClient.invalidateQueries({queryKey: ["shot", shotID]})
-            // // await queryClient.resetQueries({queryKey: ["shot", shotID]})
-            // const test:any = await queryClient.getQueryData(['shot', shotID])
-            // console.log(test);
-            // await reset(test)
-            // const refetching = await refetch()
-            // console.log(refetching);
-            // await reset(refetching.data)
-            // await resetField('expand.possibleNarrations[0]')
-        }
-    })
-    const {mutate:updateNarr} = useMutation({mutationFn: ({narrID, newData}:any) =>  {
-        return updateNarration(narrID, newData)
+            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
         }
     })
 
-    const Mutate = async (update:FieldValues) => {
-        const pb = await PocketBaseInit()
-        console.log(update);
-        console.log(data);
+    const {mutate: addNarration} = useMutation({
+        mutationFn: ({narrData}:any) => {
+            return createNarration(narrData, shotID)},
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
+        }
+    })
 
-        
-        
-        const narrID = data?.expand?.possibleNarrations[0].id
-        const narrUpdateData = update.expand.possibleNarrations[0]
-        const narrServerArr = data?.expand?.possibleNarrations
-        const narrLocalArr = update.expand.possibleNarrations
-        narrLocalArr.forEach((i:any) => console.log(typeof i))
-        console.log(narrLocalArr);
+    const {mutate:updateNarr} = useMutation({
+        mutationFn: ({narrID, newData}:any) =>  {
+            return updateNarration(narrID, newData)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
+        }
+    })
 
-        let updatedNarrArr:any = []
+    const {mutate:deleteNarr} = useMutation({
+        mutationFn: ({narrID}:any) => {
+            return deleteNarrationByID(narrID)
+        }
+    })
 
-        console.log("test");
+    async function removeNarrField (idx:any) {
+        const narrId = getValues(`expand.possibleNarrations[${idx}].id`)
+        const narrIdWatch = watch(`expand.possibleNarrations[${idx}].id`)
+        console.log(narrId);
+        console.log(narrIdWatch);
+        setNarrToDel(old => [...old, narrId])
+    }
 
-        narrLocalArr.map(async (item:any, idx:number) => {
-            if (typeof item === "string") {
-            } else{
-                const x = await updateNarration(narrServerArr[idx].id, item)
-                return x
-            }
-        })
+    // useEffect(() => {
+    //     // setFocus(`expand.possibleNarrations[0].narrationContent`)
+    //     // posNarrFields.forEach((item, idx) => {
+    //     //     setFocus(`expand.possibleNarrations[${idx}].narrationContent`)
+    //     console.log("test Effect");
+    //     posNarrFields.forEach((item, idx) => {
+    //         return setValue(`expand.possibleNarrations[${idx}].narrationContent`, data?.expand?.possibleNarrations[idx].narrationContent)
+    //     })
+    //     // })
+    // },[data?.expand?.possibleNarrations, posNarrFields, setValue])
 
-        updatedNarrArr = [...narrLocalArr]
-
-        console.log(narrLocalArr);
-        console.log(updatedNarrArr);
-
-
-        const refetching:any = await queryClient.fetchQuery({queryKey: ['shot', shotID]})
-        console.log(refetching);
-        // await reset(refetching.data)
-
-        refetching?.data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
+    async function repopulate() {
+        console.log("Repopulate called");
+        queryClient.invalidateQueries({queryKey: ["shot", shotID]})
+        reset(async () =>  await queryClient.getQueryData(['shot', shotID]))
+        console.log("Reset");
+        data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
             Object.keys(field).forEach((key) => {
                 posNarrUpdate(index, field[key])
             })
         })
+    }
 
+    const Mutate = async (update:FieldValues) => {
+        const pb = await PocketBaseInit()
+        console.log(update);
+        console.log(narrToDel.slice(1));
+
+        let slicedNarrToDel = narrToDel.slice(1)
+
+        if (slicedNarrToDel.length > 0) {
+            slicedNarrToDel.forEach((item) => {
+                deleteNarr({narrID: item})
+            })
+        }
+
+        const narrID = data?.expand?.possibleNarrations[0].id
+        const narrUpdateData = update.expand.possibleNarrations[0]
+        const narrServerArr = data?.expand?.possibleNarrations
+        const narrLocalArr = update.expand.possibleNarrations
+
+        console.log(narrLocalArr);
+
+        let updatedNarrArr:any = []
+        updatedNarrArr = [...narrLocalArr]
+
+        for (let i = 0; i < updatedNarrArr.length; i++) {
+            if (updatedNarrArr[i].id === "new") {
+                addNarration({narrData: updatedNarrArr[i]})
+            } else if (typeof updatedNarrArr[i].id === "undefined") {
+            } else {
+                updateNarr({narrID: updatedNarrArr[i].id, newData: updatedNarrArr[i]})
+            }
+        }
+
+        // refetching?.data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
+        //     Object.keys(field).forEach((key) => {
+        //         posNarrUpdate(index, field[key])
+        //     })
+        // })
+
+
+        repopulate()
+        // refetch()
 
 
         // console.log("narrUpdateData -->", narrUpdateData);
@@ -175,7 +239,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
         return (
             <div className="flex flex-col max-w-[80vw] min-w-[50vw]">
                 <FormProvider {...methods}>
-                <form onBlur={handleSubmit(Mutate)}>
+                <form onSubmit={handleSubmit(Mutate)}>
                 <Card className=" rounded-none shadow-sm border-2">
                     <CardHeader>
                         <div  className="flex flex-col">
@@ -218,19 +282,95 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                 <Button
                                                 type="button"
                                                 onClick={(e) => {
-                                                    // let selectedIdx = Number(selectedNarrTab.substring(4)) + 1
-                                                    // setSelectedNarrTab("narr" + selectedIdx)
-                                                    addBlankNarration()
-                                                    posNarrAppend(defaultNarration)
+                                                    e.preventDefault()
+                                                    posNarrAppend({
+                                                        "id" : "new",
+                                                        ...defaultNarration
+                                                    })
+
+                                                    setSelectedNarrTab("narr" + posNarrFields.length)
+
+                                                    async function blankNarr2 () {
+                                                        const data = await createNarration({}, shotID)
+                                                        const res = await data
+                                                        posNarrAppend({
+                                                            "id": "",
+                                                            ...defaultNarration
+                                                        })
+                                                        res ?
+                                                        posNarrUpdate(posNarrFields.length, {
+                                                            "id": res.newNarrRecord.id,
+                                                        }) : ""
+                                                        await repopulate()
+                                                    }
+                                                    blankNarr2()
                                                 }}
                                                 variant="bordered" radius="none" size={"sm"}>+ Narration</Button>
                                             </div>
                                         </CardHeader>
                                         <Divider/>
                                         <CardBody className="flex flex-row min-h-[200px]self-stretch">
-                                            <Tabs
+                                            <div className="py-4 flex flex-row">
+                                                <div className="flex flex-col pr-5">
+                                                    {
+                                                        posNarrFields.map((posNarrField:any,posNarrIdx:any) => {
+
+                                                            return(
+                                                                <div key={posNarrField.id}>
+                                                                    <Button type="button" onClick={() =>setSelectedNarrTab(posNarrIdx)}
+                                                                        variant={selectedNarrTab === posNarrIdx ? "bordered" : "flat"}
+                                                                        radius="none" className=" font-mono"
+                                                                    >
+                                                                        Variant # {posNarrIdx + 1}
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    }
+
+                                                </div>
+                                                {posNarrFields.map(
+                                                    (posNarrField:any, posNarrIdx:any) => {
+                                                        return (
+                                                            <div key={posNarrField.id} className={`flex ${selectedNarrTab === posNarrIdx ? "" : "hidden"}`}>
+                                                                <Input
+                                                                className="hidden"
+                                                                defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.dbID}
+                                                                {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
+                                                                <Textarea
+                                                                    onFocus={() => console.log("touched")}
+                                                                    onFocusCapture={() => console.log("touched")}
+                                                                    maxRows={6}
+                                                                    minRows={6}
+                                                                    variant="bordered"
+                                                                    radius="none"
+                                                                    label="Narration Content"
+                                                                    defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
+                                                                    {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
+                                                                />
+                                                                <Button onClick={() => {
+                                                                    posNarrRemove(posNarrIdx)
+                                                                    // const acquiredData = getValues(`expand.possibleNarrations`)
+                                                                    // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
+                                                                }}>
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                        )
+                                                    }
+                                                )}
+                                            </div>
+                                            {/* <Tabs
                                                 selectedKey={selectedNarrTab}
-                                                onSelectionChange={(e:any) => setSelectedNarrTab(e)}
+                                                onSelectionChange={(e:any) => {
+                                                    // let idx = Number(e.substring(4))
+                                                    // setFocus(`expand.possibleNarrations.${idx}.narrationContent`)
+                                                    // console.log(watch(`expand.possibleNarrations[${idx}].id`));
+                                                    // console.log(getValues(`expand.possibleNarrations[${idx}].id`));
+
+                                                    // setValue(`expand.possibleNarrations.${idx}.id`, data.expand?.possibleNarrations[idx].id, {shouldTouch:true})
+                                                    return setSelectedNarrTab(e)}
+                                                }
                                                 variant="light"
                                                 radius="none"
                                                 classNames={{
@@ -241,39 +381,58 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                     panel: "py-0"
                                             }}>
                                             {
-                                                posNarrFields.map((posNarrField:any, posNarrIdx) => {
+                                                posNarrFields.map((posNarrField:any, posNarrIdx:number) => {
                                                     return (
-                                                        <Tab key={"narr" + posNarrIdx} className="w-full h-full px-4" title={"Variant #" + String(posNarrIdx + 1)}>
+                                                        <Tab key={posNarrField.id} className="w-full h-full px-4" title={"Variant #" + String(posNarrIdx + 1)}>
                                                             <div className=" h-full min-h-full">
+                                                                <Input
+                                                                className="hidden"
+                                                                defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.dbID}
+                                                                onFocus={() => console.log("Focused")}
+                                                                {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
                                                                 <Textarea
+                                                                    onFocus={() => console.log("touched")}
+                                                                    onFocusCapture={() => console.log("touched")}
                                                                     maxRows={6}
                                                                     minRows={6}
                                                                     variant="bordered"
                                                                     radius="none"
                                                                     label="Narration Content"
                                                                     defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
-                                                                    {...register(`expand.possibleNarrations.${posNarrIdx}.narrationContent`)}
+                                                                    {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
                                                                 />
-                                                                {/* <InputBuild
-                                                                    fieldName={`possibleNarrations.${posNarrIdx}.narrationContent`}
-                                                                    fieldLabel="Narration Content"
-                                                                    fieldDescription="This is where narration lives"
-                                                                    inputType="long-text"
-                                                                    {...control}
-                                                                />
-                                                                <RequirementGates
-                                                                    reqType={"possibleNarrations"}
-                                                                    parentIdx={posNarrIdx}
-                                                                    watcher={formWatch}
-                                                                    {...control}
-                                                                /> */}
+                                                                <Button 
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        // const acquiredData = getValues(`expand.possibleNarrations`)
+                                                                        // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
+
+
+                                                                        // setFocus(`expand.possibleNarrations.${posNarrIdx}`, {shouldSelect: true})
+                                                                        // console.log(posNarrIdx);
+                                                                        // // removeNarrField(posNarrIdx)
+                                                                        // // let narrId = formWatch.expand.possibleNarrations[posNarrIdx].id
+                                                                        // let narrId = getValues(`expand.possibleNarrations[${posNarrIdx}].id`)
+                                                                        // setNarrToDel(old => [...old, narrId])
+                                                                        // console.log(watch(`expand.possibleNarrations[${posNarrIdx}].id`));
+                                                                        // console.log(getValues(`expand.possibleNarrations[${posNarrIdx}].id`));
+                                                                        // console.log("Initial length --> ",posNarrFields.length);
+                                                                        // console.log("Length Afterwards --> ",posNarrFields.length);
+                                                                        // setSelectedNarrTab(posNarrField.id)
+                                                                        // console.log(posNarrIdx);
+                                                                        // console.log(posNarrIdx);
+                                                                        posNarrRemove(posNarrIdx)
+                                                                        }
+                                                                    }
+                                                                    size="sm">
+                                                                        Delete #{posNarrIdx}
+                                                                </Button>
                                                             </div>
-                                                            
                                                         </Tab>
                                                     )
                                                 })
                                             }
-                                            </Tabs>
+                                            </Tabs> */}
                                         </CardBody>
                                         <CardFooter>
                                             <p>Double check the contents, big man.</p>
@@ -435,20 +594,32 @@ export function ShotSub ({shotID}:{shotID:string}) {
                     </CardBody>
                     <Divider/>
                     <CardFooter className=" bg-slate-50">
+                        <Button className="mr-4" radius="none" type="submit" variant="solid">Submit Changes</Button>
+                        
                         <p className=" text-xs ">Sequence #{sequenceData?.sequenceNum} - Scene #{sceneData?.sceneNum}</p>
+                        <p className=" text-xs ">{isFetching && "Is Fetching"}</p>
+                        <p className=" text-xs ">{JSON.stringify(narrToDel, null, 1)}</p>
+                        <p className=" text-xs ">{isRefetching && "Is Re-Fetching"}</p>
                     </CardFooter>
                 </Card>
                 </form>
                 </FormProvider>
-                <p className="text-lg font-bold">{JSON.stringify(getFieldState("expand.possibleNarrations[0]"))}</p>
+                        {
+                            isSubmitting && <p>Is Submitting</p>
+                        }
+                        {
+                            isSubmitSuccessful && <p>Is Submit Successful</p>
+                        }
+                        {
+                            isSubmitted && <p>Is Submitted</p>
+                        }
+                <div>
+                    <DevTool control={control}/>
+                </div>
                 <div className="flex flex-row max-w-[20vw]">
                     {
                         data &&
                         <pre className=" text-xs  border-r-2 pr-4">{JSON.stringify(data, null, 1)}</pre>
-                    }
-                    {
-                        data &&
-                        <pre className=" text-xs  border-r-2 pr-4">{JSON.stringify(watch(), null, 1)}</pre>
                     }
                     {
                         data &&

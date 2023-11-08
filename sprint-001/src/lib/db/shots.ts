@@ -14,31 +14,79 @@ export async function getShot (id:string) {
     const records = await pb.collection('shots').getOne(id, {
         expand: 'possibleNarrations.requirements.requirementItems, possibleDecisions.requirements,requirementItems'
     })
+    console.log(records);
+    let newNarrs = records.expand?.possibleNarrations.map((item:any) => {
+        console.log(item);
+        let newForm = {
+            narrID: item.id,
+            ...item
+        }
+        delete newForm.id
+        console.log(newForm);
+        return newForm
+    })
+    console.log(records);
+    console.log(newNarrs);
+
+    let stringified = JSON.parse(JSON.stringify(records).replaceAll('"id"', '"dbID"'))
+
+    console.log(stringified);
+
+    return stringified
+}
+
+export async function updateShot (id:any, newShotData:any) {
+    const pb = await PocketBaseInit()
+    const records = await pb.collection('shots').update(id, newShotData)
     return records
 }
 
 export async function updateNarration (narrID:any, newData:any) {
-    const pb = await PocketBaseInit()
+    try {const pb = await PocketBaseInit()
     const record = await pb.collection('narration').update(narrID, newData)
-    return record
+    return record} catch (e) {
+        console.log(e);
+    }
+}
 
+export async function getNarrationByID (narrID:any) {
+    const pb = await PocketBaseInit()
+    const record = await pb.collection('narration').getOne(narrID)
+    return record
+}
+
+export async function deleteNarrationByID (narrID:any) {
+    const pb = await PocketBaseInit()
+    const record = await pb.collection('narration').delete(narrID)
+    return record
+}
+
+export async function getAllNarrationSHOT () {
 
 }
 
 export async function createNarration (newData:any, shotID:string) {
     const pb = await PocketBaseInit()
-    const newNarrRecord = {
-        "shotID" : shotID,
-        ...newData
-    }
-    const record = await pb.collection('narration').create(newNarrRecord)
+    newData.id ? delete newData.id : ""
+    try {
+        const newNarrRecord = {
+            "shotID" : shotID,
+            ...newData
+        }
 
-    const newNarrAppend = {
-        "possibleNarrations+" : record?.id
-    }
-    const updateShot = await pb.collection('shots').update(shotID, newNarrAppend)
+        const record = await pb.collection('narration').create(newNarrRecord)
+        console.log(record);
 
-    // return {"newNarrRecord" : record, "updatedShot" : updateShot}
+        const newNarrAppend = {
+            "possibleNarrations+" : record?.id
+        }
+        const updateShot = await pb.collection('shots').update(shotID, newNarrAppend)
+        return {"newNarrRecord" : record, "updatedShot" : updateShot}
+
+    } catch (e) {
+        console.log(e);
+    }
+
 }
 
 export async function getSequenceFromID (id:string) {
@@ -56,7 +104,6 @@ export async function getSceneFromID (id:string) {
 
     return scene
 }
-
 export async function createShot (data:any) {
     const pb = await PocketBaseInit()
 
