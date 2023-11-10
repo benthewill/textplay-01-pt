@@ -5,18 +5,21 @@ export let requirementCategories = [
 ]
 
 export let inventoryItems = [
+    {value: "defaultVal", label: "Select Item"},
     {value: "clock", label: "Clock"},
     {value: "book", label: "Book"},
-    {value: "alien", label: "Access"}
+    {value: "alien", label: "Alien"}
 ]
 
 export let infectionItems = [
+    {value: "defaultVal", label: "Select Item"},
     {value: "black", label: "Black"},
     {value: "white", label: "White"},
     {value: "gray", label: "Gray"}
 ]
 
 export let accessItems = [
+    {value: "defaultVal", label: "Select Item"},
     {value: "manor", label: "Manor"},
     {value: "405", label: "405"},
     {value: "305", label: "305"}
@@ -32,27 +35,34 @@ export let operatorTypes = [
 export let gateTypes = ["item", "and", "or"]
 
 export let reqItem = {
-    requirementID: " ",
-    category: "",
-    item: "",
-    requirement: "",
-    amount: "",
-    operator: ""
+    dbID: "new",
+    itemRequired: "nz392j29v1zif43",
+    infectionRequired: "placeholderData",
+    amount: 0,
+    operator: "="
 }
 
 export let defaultRequirement = {
     gate: "item",
-    reqData: [reqItem]
+    expand: {
+        requirementItems: [
+            reqItem
+        ]
+    }
 }
 
 export let ANDRequirement = {
     gate: "and",
-    reqData: [reqItem]
+    expand: {
+        requirementItems: [reqItem]
+    }
 }
 
 export let defaultNarration = {
     narrationContent: "",
-    requirements: [defaultRequirement]
+    expand: {
+        requirements: [defaultRequirement]
+    }
 }
 
 export let defaultDecision = {

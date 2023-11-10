@@ -1,0 +1,50 @@
+"filename", "language", "TypeScript", "TypeScript JSX", "Markdown", "CSS", "JSON with Comments", "JSON", "JavaScript", "XML", "comment", "blank", "total"
+"/Users/benthewill/Projects/textplays/textplay-01-pt/README.md", "Markdown", 0, 0, 3, 0, 0, 0, 0, 0, 0, 4, 7
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/.eslintrc.json", "JSON with Comments", 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 9
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/components.json", "JSON", 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 16
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/next.config.js", "JavaScript", 0, 0, 0, 0, 0, 0, 2, 0, 1, 2, 5
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/package-lock.json", "JSON", 0, 0, 0, 0, 0, 13110, 0, 0, 0, 1, 13111
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/package.json", "JSON", 0, 0, 0, 0, 0, 60, 0, 0, 0, 1, 61
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/postcss.config.js", "JavaScript", 0, 0, 0, 0, 0, 0, 6, 0, 0, 1, 7
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/public/next.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/public/vercel.svg", "XML", 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/auth/login/page.tsx", "TypeScript JSX", 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 17
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/auth/signup/page.tsx", "TypeScript JSX", 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 17
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/globals.css", "CSS", 0, 0, 0, 102, 0, 0, 0, 0, 0, 8, 110
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/graph/page.tsx", "TypeScript JSX", 0, 66, 0, 0, 0, 0, 0, 0, 0, 10, 76
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/layout.tsx", "TypeScript JSX", 0, 28, 0, 0, 0, 0, 0, 0, 2, 6, 36
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/page.tsx", "TypeScript JSX", 0, 41, 0, 0, 0, 0, 0, 0, 0, 6, 47
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/shots/[id]/page.tsx", "TypeScript JSX", 0, 16, 0, 0, 0, 0, 0, 0, 69, 9, 94
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/shots/layout.tsx", "TypeScript JSX", 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 7
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/app/shots/page.tsx", "TypeScript JSX", 0, 20, 0, 0, 0, 0, 0, 0, 0, 2, 22
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/flow/FlowProvider.tsx", "TypeScript JSX", 0, 14, 0, 0, 0, 0, 0, 0, 2, 3, 19
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/flow/nodes/ShotNode.tsx", "TypeScript JSX", 0, 35, 0, 0, 0, 0, 0, 0, 0, 3, 38
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/AllShots.tsx", "TypeScript JSX", 0, 47, 0, 0, 0, 0, 0, 0, 0, 6, 53
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/InputBuild.tsx", "TypeScript JSX", 0, 111, 0, 0, 0, 0, 0, 0, 76, 6, 193
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/ShotInput.tsx", "TypeScript JSX", 0, 461, 0, 0, 0, 0, 0, 0, 110, 23, 594
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/ShotSub.tsx", "TypeScript JSX", 0, 644, 0, 0, 0, 0, 0, 0, 59, 62, 765
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/ShotSub2.tsx", "TypeScript JSX", 0, 164, 0, 0, 0, 0, 0, 0, 3, 12, 179
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/shot/TestReq.tsx", "TypeScript JSX", 0, 32, 0, 0, 0, 0, 0, 0, 1, 8, 41
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/button.tsx", "TypeScript JSX", 0, 52, 0, 0, 0, 0, 0, 0, 0, 6, 58
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/card.tsx", "TypeScript JSX", 0, 68, 0, 0, 0, 0, 0, 0, 0, 9, 77
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/form.tsx", "TypeScript JSX", 0, 152, 0, 0, 0, 0, 0, 0, 0, 25, 177
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/input.tsx", "TypeScript JSX", 0, 21, 0, 0, 0, 0, 0, 0, 0, 5, 26
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/label.tsx", "TypeScript JSX", 0, 21, 0, 0, 0, 0, 0, 0, 0, 6, 27
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/select.tsx", "TypeScript JSX", 0, 109, 0, 0, 0, 0, 0, 0, 0, 12, 121
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/separator.tsx", "TypeScript JSX", 0, 27, 0, 0, 0, 0, 0, 0, 0, 5, 32
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/ui/tabs.tsx", "TypeScript JSX", 0, 48, 0, 0, 0, 0, 0, 0, 0, 8, 56
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/user/CurrentUser.tsx", "TypeScript JSX", 0, 43, 0, 0, 0, 0, 0, 0, 0, 6, 49
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/user/LogIn.tsx", "TypeScript JSX", 0, 93, 0, 0, 0, 0, 0, 0, 1, 7, 101
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/components/user/SignUp.tsx", "TypeScript JSX", 0, 103, 0, 0, 0, 0, 0, 0, 1, 7, 111
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/lib/db/pocketbaseinit.ts", "TypeScript", 6, 0, 0, 0, 0, 0, 0, 0, 0, 2, 8
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/lib/db/shots.ts", "TypeScript", 203, 0, 0, 0, 0, 0, 0, 0, 7, 55, 265
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/lib/utils.ts", "TypeScript", 5, 0, 0, 0, 0, 0, 0, 0, 0, 2, 7
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/lib/validations/shots.ts", "TypeScript", 73, 0, 0, 0, 0, 0, 0, 0, 0, 11, 84
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/middleware.ts", "TypeScript", 34, 0, 0, 0, 0, 0, 0, 0, 25, 12, 71
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/state/user.ts", "TypeScript", 43, 0, 0, 0, 0, 0, 0, 0, 1, 8, 52
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/state/utils/server-cookie.ts", "TypeScript", 34, 0, 0, 0, 0, 0, 0, 0, 2, 6, 42
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/utils/queryProvider.tsx", "TypeScript JSX", 0, 15, 0, 0, 0, 0, 0, 0, 0, 5, 20
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/src/utils/uiProvider.tsx", "TypeScript JSX", 0, 10, 0, 0, 0, 0, 0, 0, 1, 2, 13
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/tailwind.config.ts", "TypeScript", 77, 0, 0, 0, 0, 0, 0, 0, 1, 1, 79
+"/Users/benthewill/Projects/textplays/textplay-01-pt/sprint-001/tsconfig.json", "JSON with Comments", 0, 0, 0, 0, 25, 0, 0, 0, 2, 1, 28
+"Total", "-", 475, 2480, 3, 102, 34, 13186, 8, 2, 364, 376, 17030

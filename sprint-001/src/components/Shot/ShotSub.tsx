@@ -1,16 +1,20 @@
 "use client";
 import React, {useCallback, useEffect, useState} from "react";
+import { isEqual } from "lodash";
 import { useForm, SubmitHandler, useFieldArray, FormProvider, useFormContext, FieldValues, useWatch, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DevTool } from "@hookform/devtools";
 import { useEffectOnce } from 'usehooks-ts'
+import {RadioGroup, Radio} from "@nextui-org/react";
 import {
     Card,
     CardHeader,
     CardBody,
     CardFooter,
     Divider,
-    Input
+    Input,
+    Select,
+    SelectItem
 } from '@nextui-org/react'
 // import { Button } from "../ui/button";
 import {Button, ButtonGroup} from '@nextui-org/react'
@@ -19,13 +23,21 @@ import { gateTypes, defaultRequirement, operatorTypes, defaultDecision, defaultN
 import { InputBuild } from "./InputBuild";
 import {Tabs, Tab} from '@nextui-org/react'
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration, deleteNarrationByID } from "@/lib/db/shots";
+import { createShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration, deleteNarrationByID, getItems, getInfections } from "@/lib/db/shots";
 import { Textarea } from "@nextui-org/react";
 import { PocketBaseInit } from "@/lib/db/pocketbaseinit";
 
 export function ShotSub ({shotID}:{shotID:string}) {
     const queryClient = useQueryClient()
-    const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({ queryFn: () => getShot(shotID), queryKey: ["shot", shotID], notifyOnChangeProps: "all"})
+    const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({
+        queryFn: () => getShot(shotID), queryKey: ["shot", shotID], notifyOnChangeProps: "all"
+    })
+    const {data:itemsData} = useQuery({
+        queryFn: () => getItems(), queryKey: ["getItems"]
+    })
+    const {data:infectionsData} = useQuery({
+        queryFn: () => getInfections(), queryKey: ["getInfections"]
+    })
 
     const methods = useForm({
         mode: "onSubmit",
@@ -104,9 +116,8 @@ export function ShotSub ({shotID}:{shotID:string}) {
     })
 
     const formWatch = useWatch({
-        control,
-        defaultValue: getValues('expand.possibleNarrations'),
-        name: `expand.possibleNarrations`})
+        control
+    })
 
     const [selectedNarrTab, setSelectedNarrTab] = useState(0)
     const [selectedDecTab, setSelectedDecTab] = useState('dec0')
@@ -178,34 +189,64 @@ export function ShotSub ({shotID}:{shotID:string}) {
     const Mutate = async (update:FieldValues) => {
         const pb = await PocketBaseInit()
         console.log(update);
-        console.log(narrToDel.slice(1));
+        // console.log(narrToDel.slice(1));
 
-        let slicedNarrToDel = narrToDel.slice(1)
+        const serverNarr = data?.expand.possibleNarrations
 
-        if (slicedNarrToDel.length > 0) {
-            slicedNarrToDel.forEach((item) => {
-                deleteNarr({narrID: item})
-            })
-        }
+        let newNarrArr: any[] = []
+        let serverNarrToDel: any[] = []
+        let serverNarrToUpdate: any[] = []
+        const narrToUpdate = update.expand.possibleNarrations
+
+        narrToUpdate.map((newNarr:any, newNarridx:number) => {
+            if (newNarr.dbID === "new") {
+                newNarrArr.push(newNarr)
+                delete newNarr.dbID
+            } else {
+                let stringified = JSON.parse(JSON.stringify(newNarr).replaceAll('"dbID"', '"id"'))
+                serverNarrToUpdate.push(stringified)
+            }
+        })
+
+        serverNarr.forEach((serverNarrItem:any, serverNarrIdx:number) => {
+            const test = narrToUpdate.find((x:any) => x.dbID === serverNarrItem.dbID)
+            if (test) {
+
+            } else {
+                serverNarrToDel.push(serverNarrItem.dbID)
+            }
+        })
+
+        console.log("newNarrArr", newNarrArr);
+        console.log("serverNarrToDel", serverNarrToDel);
+        console.log("serverNarrToUpdate", serverNarrToUpdate);
+
+        newNarrArr.forEach((n:any) => {
+            addNarration({narrData: n})
+        })
+
+        serverNarrToUpdate.forEach((n:any) => {
+            updateNarr({narrID: n.id, newData: n})
+        })
 
         const narrID = data?.expand?.possibleNarrations[0].id
         const narrUpdateData = update.expand.possibleNarrations[0]
         const narrServerArr = data?.expand?.possibleNarrations
         const narrLocalArr = update.expand.possibleNarrations
 
-        console.log(narrLocalArr);
+        // console.log(narrLocalArr);
 
         let updatedNarrArr:any = []
         updatedNarrArr = [...narrLocalArr]
 
-        for (let i = 0; i < updatedNarrArr.length; i++) {
-            if (updatedNarrArr[i].id === "new") {
-                addNarration({narrData: updatedNarrArr[i]})
-            } else if (typeof updatedNarrArr[i].id === "undefined") {
-            } else {
-                updateNarr({narrID: updatedNarrArr[i].id, newData: updatedNarrArr[i]})
-            }
-        }
+        // for (let i = 0; i < updatedNarrArr.length; i++) {
+        //     if (updatedNarrArr[i].id === "new") {
+        //         addNarration({narrData: updatedNarrArr[i]})
+        //     } else if (typeof updatedNarrArr[i].id === "undefined") {
+        //     } else {
+        //         updateNarr({narrID: updatedNarrArr[i].id, newData: updatedNarrArr[i]})
+        //     }
+        // }
 
         // refetching?.data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
         //     Object.keys(field).forEach((key) => {
@@ -214,17 +255,16 @@ export function ShotSub ({shotID}:{shotID:string}) {
         // })
 
 
-        repopulate()
+        // repopulate()
         // refetch()
 
 
         // console.log("narrUpdateData -->", narrUpdateData);
         // console.log(data?.expand?.possibleNarrations.length);
         // console.log(update.possibleNarrations.length);
-        
 
         // const record = await pb.collection('shots').update(shotID, update);
-        
+
         // console.log(data);
         // console.log(JSON.stringify(data));
 
@@ -255,7 +295,6 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                 />
                             </div>
                         </div>
-                        
                     </CardHeader>
                     <Divider/>
                     <CardBody>
@@ -282,42 +321,28 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                 <Button
                                                 type="button"
                                                 onClick={(e) => {
-                                                    e.preventDefault()
+                                                    // e.preventDefault()
                                                     posNarrAppend({
-                                                        "id" : "new",
+                                                        "dbID" : "new",
                                                         ...defaultNarration
                                                     })
 
-                                                    setSelectedNarrTab("narr" + posNarrFields.length)
-
-                                                    async function blankNarr2 () {
-                                                        const data = await createNarration({}, shotID)
-                                                        const res = await data
-                                                        posNarrAppend({
-                                                            "id": "",
-                                                            ...defaultNarration
-                                                        })
-                                                        res ?
-                                                        posNarrUpdate(posNarrFields.length, {
-                                                            "id": res.newNarrRecord.id,
-                                                        }) : ""
-                                                        await repopulate()
-                                                    }
-                                                    blankNarr2()
+                                                    setSelectedNarrTab(posNarrFields.length)
                                                 }}
-                                                variant="bordered" radius="none" size={"sm"}>+ Narration</Button>
+                                                color="primary" 
+                                                variant="flat" radius="none" size={"sm"}>+ Narration</Button>
                                             </div>
                                         </CardHeader>
                                         <Divider/>
                                         <CardBody className="flex flex-row min-h-[200px]self-stretch">
-                                            <div className="py-4 flex flex-row">
-                                                <div className="flex flex-col pr-5">
+                                            <div className="py-4 flex flex-row w-full">
+                                                <div className="flex flex-col items-center pr-5">
                                                     {
                                                         posNarrFields.map((posNarrField:any,posNarrIdx:any) => {
 
                                                             return(
                                                                 <div key={posNarrField.id}>
-                                                                    <Button type="button" onClick={() =>setSelectedNarrTab(posNarrIdx)}
+                                                                    <Button type="button" color="primary" onClick={() =>setSelectedNarrTab(posNarrIdx)}
                                                                         variant={selectedNarrTab === posNarrIdx ? "bordered" : "flat"}
                                                                         radius="none" className=" font-mono"
                                                                     >
@@ -332,7 +357,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                 {posNarrFields.map(
                                                     (posNarrField:any, posNarrIdx:any) => {
                                                         return (
-                                                            <div key={posNarrField.id} className={`flex ${selectedNarrTab === posNarrIdx ? "" : "hidden"}`}>
+                                                            <div key={posNarrField.id} className={`flex flex-col w-full ${selectedNarrTab === posNarrIdx ? "" : "hidden"}`}>
                                                                 <Input
                                                                 className="hidden"
                                                                 defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.dbID}
@@ -348,254 +373,41 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                     defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
                                                                     {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
                                                                 />
-                                                                <Button onClick={() => {
+                                                                <Button
+                                                                    color="secondary"
+                                                                    radius="none"
+                                                                    size="sm"
+                                                                    onClick={() => {
                                                                     posNarrRemove(posNarrIdx)
                                                                     // const acquiredData = getValues(`expand.possibleNarrations`)
                                                                     // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
                                                                 }}>
                                                                     Delete
                                                                 </Button>
+                                                                <RequirementGates
+                                                                    reqType="possibleNarrations"
+                                                                    parentIdx={posNarrIdx}
+                                                                    control={control}
+                                                                    watcher={formWatch}
+                                                                    shotID={shotID}
+                                                                />
                                                             </div>
                                                         )
                                                     }
                                                 )}
                                             </div>
-                                            {/* <Tabs
-                                                selectedKey={selectedNarrTab}
-                                                onSelectionChange={(e:any) => {
-                                                    // let idx = Number(e.substring(4))
-                                                    // setFocus(`expand.possibleNarrations.${idx}.narrationContent`)
-                                                    // console.log(watch(`expand.possibleNarrations[${idx}].id`));
-                                                    // console.log(getValues(`expand.possibleNarrations[${idx}].id`));
-
-                                                    // setValue(`expand.possibleNarrations.${idx}.id`, data.expand?.possibleNarrations[idx].id, {shouldTouch:true})
-                                                    return setSelectedNarrTab(e)}
-                                                }
-                                                variant="light"
-                                                radius="none"
-                                                classNames={{
-                                                    base: "flex flex-row min-h-full h-full pr-5",
-                                                    tab: "flex flex-col h-full",
-                                                    tabList: "flex flex-col ",
-                                                    tabContent: "h-full",
-                                                    panel: "py-0"
-                                            }}>
-                                            {
-                                                posNarrFields.map((posNarrField:any, posNarrIdx:number) => {
-                                                    return (
-                                                        <Tab key={posNarrField.id} className="w-full h-full px-4" title={"Variant #" + String(posNarrIdx + 1)}>
-                                                            <div className=" h-full min-h-full">
-                                                                <Input
-                                                                className="hidden"
-                                                                defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.dbID}
-                                                                onFocus={() => console.log("Focused")}
-                                                                {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
-                                                                <Textarea
-                                                                    onFocus={() => console.log("touched")}
-                                                                    onFocusCapture={() => console.log("touched")}
-                                                                    maxRows={6}
-                                                                    minRows={6}
-                                                                    variant="bordered"
-                                                                    radius="none"
-                                                                    label="Narration Content"
-                                                                    defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
-                                                                    {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
-                                                                />
-                                                                <Button 
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        // const acquiredData = getValues(`expand.possibleNarrations`)
-                                                                        // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
-
-
-                                                                        // setFocus(`expand.possibleNarrations.${posNarrIdx}`, {shouldSelect: true})
-                                                                        // console.log(posNarrIdx);
-                                                                        // // removeNarrField(posNarrIdx)
-                                                                        // // let narrId = formWatch.expand.possibleNarrations[posNarrIdx].id
-                                                                        // let narrId = getValues(`expand.possibleNarrations[${posNarrIdx}].id`)
-                                                                        // setNarrToDel(old => [...old, narrId])
-                                                                        // console.log(watch(`expand.possibleNarrations[${posNarrIdx}].id`));
-                                                                        // console.log(getValues(`expand.possibleNarrations[${posNarrIdx}].id`));
-                                                                        // console.log("Initial length --> ",posNarrFields.length);
-                                                                        // console.log("Length Afterwards --> ",posNarrFields.length);
-                                                                        // setSelectedNarrTab(posNarrField.id)
-                                                                        // console.log(posNarrIdx);
-                                                                        // console.log(posNarrIdx);
-                                                                        posNarrRemove(posNarrIdx)
-                                                                        }
-                                                                    }
-                                                                    size="sm">
-                                                                        Delete #{posNarrIdx}
-                                                                </Button>
-                                                            </div>
-                                                        </Tab>
-                                                    )
-                                                })
-                                            }
-                                            </Tabs> */}
                                         </CardBody>
                                         <CardFooter>
                                             <p>Double check the contents, big man.</p>
                                         </CardFooter>
                                 </Card>
                             </Tab>
-
                         </Tabs>
-                        {/* Completed
-                        <FormProvider {...methods}>
-                        <form onBlur={handleSubmit(Mutate)}>
-                            <InputBuild
-                                fieldName={"shotName"}
-                                inputType={"text"}
-                                fieldLabel="Shot Name"
-                                {...control}
-                            />
-                            <Divider className="mt-4"/>
-    
-                            <NextTabs defaultSelectedKey="possibleNarrations" radius="none" fullWidth className="  mt-4 border-t-2 border-x-2 " classNames={{
-                                tabList: "bg-white"
-                            }}>
-                                <NextTab key="possibleNarrations" title="Narrations" className="p-0 z-50">
-                                    <Card className="rounded-none z-0 shadow-none border-2">
-                                        <CardHeader className="flex flex-row justify-between items-end">
-                                            <div>
-                                                Narration Variants
-                                            </div>
-                                            <div>
-                                                <Button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    let selectedIdx = Number(selectedNarrTab.substring(4)) + 1
-                                                    setSelectedNarrTab("narr" + selectedIdx)
-                                                    return posNarrAppend(defaultNarration)
-                                                }}
-                                                variant="bordered" radius="none" size={"sm"}>+ Narration</Button>
-                                            </div>
-                                        </CardHeader>
-                                        <Divider/>
-                                        <CardBody className="flex flex-row min-h-[200px]self-stretch">
-                                            <NextTabs
-                                                selectedKey={selectedNarrTab}
-                                                onSelectionChange={(e:any) => setSelectedNarrTab(e)}
-                                                variant="light"
-                                                radius="none"
-                                                classNames={{
-                                                    base: "flex flex-row min-h-full h-full pr-5",
-                                                    tab: "flex flex-col h-full",
-                                                    tabList: "flex flex-col ",
-                                                    tabContent: "h-full",
-                                                    panel: "py-0"
-                                            }}>
-                                            {
-                                                posNarrFields.map((posNarrField, posNarrIdx) => {
-                                                    return (
-                                                        <NextTab key={"narr" + posNarrIdx} className="w-full h-full px-4" title={"Variant #" + String(posNarrIdx + 1)}>
-                                                            <div className=" h-full min-h-full">
-                                                                <InputBuild
-                                                                    fieldName={`possibleNarrations.${posNarrIdx}.narrationContent`}
-                                                                    fieldLabel="Narration Content"
-                                                                    fieldDescription="This is where narration lives"
-                                                                    inputType="long-text"
-                                                                    {...control}
-                                                                />
-                                                                <RequirementGates
-                                                                    reqType={"possibleNarrations"}
-                                                                    parentIdx={posNarrIdx}
-                                                                    watcher={formWatch}
-                                                                    {...control}
-                                                                />
-                                                            </div>
-                                                            
-                                                        </NextTab>
-                                                    )
-                                                })
-                                            }
-                                            </NextTabs>
-                                        </CardBody>
-                                        <CardFooter>
-                                            <p>Double check the contents, big man.</p>
-                                        </CardFooter>
-                                    </Card>
-                                </NextTab>
-                                <NextTab key="possibleDecisions" title="Decisions" className="p-0 z-50">
-                                <Card className="rounded-none z-0 shadow-none border-2">
-                                        <CardHeader className="flex flex-row justify-between items-end">
-                                            <div>
-                                                Decisions Variants
-                                            </div>
-                                            <div>
-                                                <Button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    let selectedIdx = Number(selectedDecTab.substring(3)) + 1
-                                                    setSelectedDecTab("dec" + selectedIdx)
-                                                    return posDecAppend(defaultDecision)
-                                                }}
-                                                variant="bordered" radius="none" size={"sm"}>+ Decision</Button>
-                                            </div>
-                                        </CardHeader>
-                                        <Divider/>
-                                        <CardBody className="flex flex-row min-h-[200px]self-stretch">
-                                            <NextTabs
-                                                selectedKey={selectedDecTab}
-                                                onSelectionChange={(e:any) => setSelectedDecTab(e)}
-                                                variant="light"
-                                                radius="none"
-                                                classNames={{
-                                                    base: "flex flex-row min-h-full h-full pr-5",
-                                                    tab: "flex flex-col h-full",
-                                                    tabList: "flex flex-col ",
-                                                    tabContent: "h-full",
-                                                    panel: "py-0"
-                                            }}>
-                                            {
-                                                posDecFields.map((posDecField, posDecIdx) => {
-                                                    return (
-                                                        <NextTab key={"dec" + posDecIdx} className="w-full h-full px-4" title={"Variant #" + String(posDecIdx + 1)}>
-                                                            <div className=" h-full min-h-full">
-                                                                <InputBuild
-                                                                    fieldName={`possibleDecisions.${posDecIdx}.decisionContent`}
-                                                                    fieldLabel="Decision Content"
-                                                                    fieldDescription="This is where the decision lives"
-                                                                    inputType="text"
-                                                                    {...control}
-                                                                />
-                                                                <RequirementGates
-                                                                    reqType={"possibleDecisions"}
-                                                                    parentIdx={posDecIdx}
-                                                                    watcher={formWatch}
-                                                                    {...control}
-                                                                />
-                                                            </div>
-                                                            
-                                                        </NextTab>
-                                                    )
-                                                })
-                                            }
-                                            </NextTabs>
-                                        </CardBody>
-                                        <CardFooter>
-                                            <p>Double check the contents, big man.</p>
-                                        </CardFooter>
-                                    </Card>
-                                </NextTab>
-                            </NextTabs>
-    
-    
-    
-                            <div className="my-4">
-                                <Button variant="bordered" size="lg" type="submit" radius="none">
-                                    <p className="font-semibold text-xl">Submit</p>
-                                </Button>
-                            </div>
-                        </form>
-                        </FormProvider> */}
-                    </ScrollShadow> 
+                    </ScrollShadow>
                     </CardBody>
                     <Divider/>
                     <CardFooter className=" bg-slate-50">
-                        <Button className="mr-4" radius="none" type="submit" variant="solid">Submit Changes</Button>
-                        
+                        <Button className="mr-4" radius="none" color="primary" size="lg" type="submit" variant="solid">Submit Changes</Button>
                         <p className=" text-xs ">Sequence #{sequenceData?.sequenceNum} - Scene #{sceneData?.sceneNum}</p>
                         <p className=" text-xs ">{isFetching && "Is Fetching"}</p>
                         <p className=" text-xs ">{JSON.stringify(narrToDel, null, 1)}</p>
@@ -604,17 +416,16 @@ export function ShotSub ({shotID}:{shotID:string}) {
                 </Card>
                 </form>
                 </FormProvider>
-                        {
-                            isSubmitting && <p>Is Submitting</p>
-                        }
-                        {
-                            isSubmitSuccessful && <p>Is Submit Successful</p>
-                        }
-                        {
-                            isSubmitted && <p>Is Submitted</p>
-                        }
                 <div>
-                    <DevTool control={control}/>
+                    {
+                        isSubmitting && <p>Is Submitting</p>
+                    }
+                    {
+                        isSubmitSuccessful && <p>Is Submit Successful</p>
+                    }
+                    {
+                        isSubmitted && <p>Is Submitted</p>
+                    }
                 </div>
                 <div className="flex flex-row max-w-[20vw]">
                     {
@@ -632,8 +443,13 @@ export function ShotSub ({shotID}:{shotID:string}) {
 
 }
 
-function RequirementGates ({reqType, parentIdx, control, watcher}:any) {
-    // const {register} = useFormContext()
+function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shotID}:any) {
+    const {register, getValues} = useFormContext()
+    const queryClient = useQueryClient()
+    const data : any = queryClient.getQueryData(["shot", shotID])
+    const requirementData = data.expand[reqType][parentIdx]?.expand?.requirements
+    // console.log(requirementData[0]);
+    // console.log(defaultRequirement);
     const {
         fields: reqGateFields,
         append: reqGateAppend,
@@ -641,31 +457,56 @@ function RequirementGates ({reqType, parentIdx, control, watcher}:any) {
         remove: reqGateRemove,
         swap: reqGateSwap,
         insert: reqGateInsert,
-        move:  reqGateMove} = useFieldArray({
+        move:  reqGateMove,
+        update: reqGateUpdate} = useFieldArray({
         control,
-        name: `${reqType}[${parentIdx}].requirements`
+        name: `expand.${reqType}[${parentIdx}].expand.requirements`
     })
+    useEffect(() => {
+        data.expand[reqType][parentIdx]?.expand?.requirements.forEach((field: { [key: string]: any }, index: number) => {
+            Object.keys(field).forEach((key) => {
+                reqGateUpdate(index, field[key])
+            })
+        })
+    }, [data.expand, parentIdx, reqGateUpdate, reqType])
+
     return (
         <div className="py-2">
             <div className="flex flex-row justify-between items-end ">
-                <div className="pl-10">
+                <div className="mb-4">
                     <h3 className=" font-semibold">Requirements</h3>
                 </div>
                 <div>
-                    <Button type="button" onClick={() => reqGateAppend(defaultRequirement)} variant={"light"} size={"sm"}>+ ITEM</Button>
-                    <Button type="button" onClick={() => reqGateAppend(ANDRequirement)} variant={"light"} size={"sm"}>+ AND</Button>
+                    <Button color="primary" type="button" onClick={() => reqGateAppend({
+                        "dbID" : "new",
+                        ...defaultRequirement
+                        })} variant={"light"} size={"sm"}>+ ITEM</Button>
+                    <Button color="primary" type="button" onClick={() => reqGateAppend({
+                        "dbId" : "new",
+                        ...ANDRequirement
+                        })} variant={"light"} size={"sm"}>+ AND</Button>
                 </div>
-            </div>
-            <div>
             </div>
             {
                 reqGateFields.map((reqGateField:any, reqGateIdx) => {
-                    if (reqGateField.gate === "item") {
-                        return (
-                            <div key={reqGateField.id} className="mt-2 -mb-1 -ml-2 w-full">
-                                <div className="w-full flex flex-row">
-                                    <div className=" w-1/12 align-middle">
-                                        <p className=" text-transparent">
+
+                    let chosenGate = getValues(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].gate`)
+                    return (
+                        <div key={reqGateField.id}>
+                            <div className={`${chosenGate === "item" ? "" : 'hidden'}`}>
+                                <div className="flex flex-row w-full">
+                                    <Input
+                                        className="hidden"
+                                        defaultValue={requirementData?.[reqGateIdx]?.gate || "item"}
+                                        {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].gate`)}
+                                    />
+                                    <Input
+                                        className="hidden"
+                                        defaultValue={requirementData?.[reqGateIdx]?.dbID || "new"}
+                                        {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].dbID`)}
+                                    />
+                                    <div className=" w-1/12 -mr-2 align-middle self-center">
+                                        <p className=" font-bold text-md -rotate-90">
                                             ITEM
                                         </p>
                                     </div>
@@ -673,21 +514,28 @@ function RequirementGates ({reqType, parentIdx, control, watcher}:any) {
                                         <RequirementItem
                                             reqType={reqType}
                                             grandParentIdx={parentIdx}
-                                            watcher={watcher}
                                             gateIdx={reqGateIdx}
-                                            gate="item"
-                                            {...control}
+                                            watcher={watcher}
+                                            control={control}
+                                            gate={"item"}
+                                            shotID={shotID}
                                         />
                                     </div>
                                 </div>
-
                             </div>
-                        )
-                    } else {
-                        return (
-                            <div key={reqGateField.id} className="my-10 -ml-2  flex flex-row w-full">
-                                <div className="w-full flex flex-row">
-                                    <div className=" w-1/12 align-middle self-center pb-10">
+                            <div className={`${chosenGate === "and" ? "" : 'hidden'}`}>
+                                <div className="flex flex-row w-full my-8">
+                                    <Input
+                                        className="hidden"
+                                        defaultValue={requirementData?.[reqGateIdx]?.gate || "and"}
+                                        {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].gate`)}
+                                    />
+                                    <Input
+                                        className="hidden"
+                                        defaultValue={requirementData?.[reqGateIdx]?.dbID || "new"}
+                                        {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].dbID`)}
+                                    />
+                                    <div className=" w-1/12 -mr-2 align-middle self-center pb-10">
                                         <p className=" font-bold text-md -rotate-90">
                                             AND
                                         </p>
@@ -696,25 +544,30 @@ function RequirementGates ({reqType, parentIdx, control, watcher}:any) {
                                         <RequirementItem
                                             reqType={reqType}
                                             grandParentIdx={parentIdx}
-                                            watcher={watcher}
                                             gateIdx={reqGateIdx}
-                                            gate="and"
-                                            {...control}
+                                            watcher={watcher}
+                                            control={control}
+                                            gate={"and"}
+                                            shotID={shotID}
                                         />
                                     </div>
                                 </div>
                             </div>
-                        )
-                    }
+
+                        </div>
+                    )
                 })
             }
         </div>
     )
 }
 
-function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, gate}:any) {
+function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, gate, shotID}:any) {
     const [useVal, setVal] = useState("")
-    const {register} = useFormContext()
+    const queryClient = useQueryClient()
+    const data : any = queryClient.getQueryData(["shot", shotID])
+    const reqItemData = data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems
+    const {register, getValues, setValue} = useFormContext()
     const {
         fields: reqItemFields,
         append: reqItemAppend,
@@ -722,116 +575,240 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
         remove: reqItemRemove,
         swap: reqItemSwap,
         insert: reqItemInsert,
-        move:  reqItemMove} = useFieldArray({
+        move:  reqItemMove,
+        update: reqItemUpdate} = useFieldArray({
             control,
-            name: `${reqType}[${grandParentIdx}].requirements[${gateIdx}].reqData`
+            name: `expand.${reqType}[${grandParentIdx}].expand.requirements[${gateIdx}].expand.requirementItems`
     })
-    return (
-        <div>
-            {
-                reqItemFields.map((reqItemField:any, reqItemIdx) => {
-                    let selected  = watcher[reqType][grandParentIdx]?.requirements[gateIdx]?.reqData[reqItemIdx]?.category
-                    console.log(selected);
-                        return (
-                            <div key={reqItemField.id} className="flex flex-row w-full gap-1">
-                                <div className="w-1/4">
-                                    <InputBuild
-                                        fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.category`}
-                                        fieldLabel="Type"
-                                        inputType="select"
-                                        noLabel
-                                        options={requirementCategories}
-                                        register={register}
-                                        {...control}
-                                    />
-                                </div>
-                                {
-                                    selected === "inventory" &&
-                                    <div className="w-1/4">
-                                        <InputBuild
-                                            fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.item`}
-                                            fieldLabel="Item"
-                                            inputType="select"
-                                            noLabel
-                                            options={inventoryItems}
-                                            register={register}
-                                            {...control}
-                                        />
-                                    </div>
-                                }
-                                {
-                                    selected === "infection" &&
-                                    <div className="w-1/4">
-                                        <InputBuild
-                                            fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.item`}
-                                            fieldLabel="Item"
-                                            inputType="select"
-                                            noLabel
-                                            options={infectionItems}
-                                            register={register}
-                                            {...control}
-                                        />
-                                    </div>
-                                }
-                                {
-                                    selected === "access" &&
-                                    <div className="w-1/4">
-                                        <InputBuild
-                                            fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.item`}
-                                            fieldLabel="Item"
-                                            inputType="select"
-                                            noLabel
-                                            options={accessItems}
-                                            register={register}
-                                            {...control}
-                                        />
-                                    </div>
-                                }
-                                                                {
-                                    selected === "" &&
-                                    <div className="w-1/4">
-                                        <InputBuild
-                                            fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.item`}
-                                            fieldLabel="Item"
-                                            inputType="select"
-                                            noLabel
-                                            options={inventoryItems}
-                                            register={register}
-                                            {...control}
-                                        />
-                                    </div>
-                                }
+    useEffect(() => {
+        data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems.forEach((field: { [key: string]: any }, index: number) => {
+            Object.keys(field).forEach((key) => {
+                reqItemUpdate(index, field[key])
+            })
+        })
+    }, [data.expand, gateIdx, grandParentIdx, reqItemUpdate, reqType])
 
-                                <div className=" w-1/4">
-                                    <InputBuild
-                                        fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.operator`}
-                                        fieldLabel="Operator"
-                                        inputType="select"
-                                        noLabel
-                                        register={register}
-                                        options={operatorTypes}
-                                        {...control}
+    if (data) {
+            return (
+                <div className="flex flex-col w-full">
+                    {
+                        reqItemFields.map((reqItemField:any, reqItemIdx) => {
+                            let selected = watcher.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems?.[reqItemIdx]?.category
+
+                            let options:any[] = []
+                            if (selected === "inventory") {
+                                options = inventoryItems
+                            } else if (selected === "access") {
+                                options = accessItems
+                            } else {
+                                options = infectionItems
+                            }
+                            return (
+                                <div key={reqItemField.id} className="flex flex-row w-full">
+                                    <Input
+                                        className="hidden"
+                                        defaultValue={reqItemData?.[reqItemIdx]?.dbID || "new"}
+                                        {...register(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].dbID`)}
                                     />
-                                </div>
-                                <div className=" w-1/5">
-                                    <InputBuild
-                                        fieldName={`${reqType}.${grandParentIdx}.requirements.${gateIdx}.reqData.${reqItemIdx}.amount`}
-                                        fieldLabel="Amount"
-                                        noLabel
-                                        inputType="number"
-                                        // fieldPlaceholder="Enter Amt."
-                                        // defaultValue="3"
-                                        {...control}
+                                    <RequirementItemSelect
+                                        reqType={reqType}
+                                        grandParentIdx={grandParentIdx}
+                                        gateIdx={gateIdx}
+                                        watcher={watcher}
+                                        control={control}
+                                        gate={gate}
+                                        shotID={shotID}
+                                        reqItemIdx={reqItemIdx}
                                     />
+
                                 </div>
-                            </div>
+                            )
+                        })
+                    }
+                    {
+                        gate === "and" &&
+                        <Button type="button" onClick={() => {
+                            reqItemAppend({
+                                "dbID" : "new",
+                                reqItem
+                            })
+                            console.log(reqItemFields.length);
+                        }}
+                            variant={"bordered"} size={"sm"}>+ Item</Button>
+                    }
+                </div>
+            )
+    }
+}
+
+function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, control, gate, shotID, reqItemIdx}:any) {
+    const queryClient = useQueryClient()
+    const {register, setValue, getValues} = useFormContext()
+
+    const data : any = queryClient.getQueryData(["shot", shotID])
+    const itemsData : any = queryClient.getQueryData(["getItems"])
+    const infectionsData : any = queryClient.getQueryData(["getInfections"])
+
+    const reqItemData = data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems[reqItemIdx]
+
+    const [useOptions, setOptions]:any[] = useState([])
+    const [useSelected, setSelected] = useState('inventory')
+
+
+    const [useInventory, setInventory] = useState(reqItemData?.itemRequired || itemsData[1].dbID)
+    const [useInfection, setInfection] = useState(reqItemData?.infectionRequired || 'placeholderData')
+
+    // console.log(reqItemData.infectionRequired === '');
+    // console.log(getValues(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}]`));
+    useEffectOnce(()=> {
+        if (reqItemData?.itemRequired !== "placeholderData") {
+            setOptions(itemsData)
+            setSelected("inventory")
+        } else {
+            setOptions(infectionsData)
+            setSelected("infection")
+        }
+    })
+
+    return (
+        <div className="flex flex-row w-full">
+            <Select
+                radius="none"
+                label="Category"
+                selectedKeys={[useSelected]}
+                className="w-2/3"
+                onSelectionChange={(e:any) => {
+                    if (e.anchorKey === "infection" && useSelected !== "infection") {
+                        setInfection(infectionsData[1].dbID)
+                        setValue(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`, infectionsData[1].dbID)
+                        setValue(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`, itemsData[0].dbID)
+                        setSelected(e.anchorKey)
+
+                    } else if (e.anchorKey === "infection" && useSelected === "infection") {
+
+                    }
+                    else if (e.anchorKey === "inventory" && useSelected !== "inventory") {
+                        setInventory(itemsData[1].dbID)
+                        setValue(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`, infectionsData[0].dbID)
+                        setValue(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`, itemsData[1].dbID)
+                        setSelected(e.anchorKey)
+
+                    } else {
+
+                    }
+            }}>
+                <SelectItem key="infection" value="infection">Infection</SelectItem>
+                <SelectItem key="inventory" value="inventory">Inventory</SelectItem>
+            </Select>
+            <div className={`${useSelected === "inventory"? "" : "hidden"} w-full`}>
+                <Controller
+                    render={({field} :any) => {
+                        return (
+                            <Select
+                                radius="none"
+                                selectedKeys={[useInventory]}
+                                defaultSelectedKeys={[useInventory]}
+                                onSelectionChange={(e:any) => {
+                                    return setInventory(e.anchorKey)
+                                }}
+                                label="Inventory"
+                                {...field}
+                            >
+                                {
+                                    itemsData.map((item:any) => {
+                                        if (item.dbID === "placeholderData") {
+                                            return (
+                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID}>
+                                                {item.itemName}
+                                            </SelectItem>)
+                                        }
+                                        return (
+                                            <SelectItem key={item.dbID} value={item.dbID}>
+                                                {item.itemName}
+                                            </SelectItem>
+                                        )
+                                    })
+                                }
+                            </Select>
                         )
-                })
-            }
-            {
-                gate === "and" &&
-                <Button type="button" onClick={() => reqItemAppend(reqItem)} variant={"outline"} size={"sm"}>+ Item</Button>
-            }
+                    }}
+                    defaultValue={useInventory}
+                    name={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`}
+                />
+            </div>
+            <div className={`${useSelected === "infection"? "" : "hidden"} w-full`}>
+                <Controller
+                    render={({field} :any) => {
+                        return (
+                            <Select
+                                radius="none"
+                                selectedKeys={[useInfection]}
+                                defaultSelectedKeys={[useInfection]}
+                                onSelectionChange={(e:any) => {
+                                    return setInfection(e.anchorKey)
+                                }}
+                                label="Infection"
+                                {...field}
+                            >
+                                {
+                                    infectionsData?.map((item:any) => {
+                                        if (item.dbID === "placeholderData") {
+                                            return (
+                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID}>
+                                                {item.infectionName}
+                                            </SelectItem>)
+                                        }
+                                        return (
+                                            <SelectItem key={item.dbID} value={item.dbID}>
+                                                {item.infectionName}
+                                            </SelectItem>
+                                        )
+                                    })
+                                }
+                            </Select>
+                        )
+                    }}
+                    defaultValue={useInfection}
+                    name={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`}
+                />
+            </div>
+            <div className='w-2/3'>
+                <Controller
+                    render={({field} :any) => {
+                        return (
+                            <Select
+                                // selectedKeys={[useInfection]}
+                                radius="none"
+                                defaultSelectedKeys={[reqItemData?.operator || '=']}
+                                label="Operand"
+                                {...field}
+                            >
+                                {
+                                    operatorTypes.map((item:any) => {
+                                        return (
+                                            <SelectItem key={item.value} value={item.value}>
+                                                {item.label}
+                                            </SelectItem>
+                                        )
+                                    })
+                                }
+                            </Select>
+                        )
+                    }}
+                    defaultValue={reqItemData?.operator || '='}
+                    name={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].operator`}
+                />
+            </div>
+            <div className='w-1/3'>
+                <Input
+                    radius="none"
+                    type="number"
+                    defaultValue={reqItemData?.amount || 0}
+                    {...register(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].amount`)}
+                />
+            </div>
+
         </div>
     )
+
 }
