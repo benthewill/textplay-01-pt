@@ -67,7 +67,9 @@ export let defaultNarration = {
 
 export let defaultDecision = {
     decisionContent: "",
-    requirements: [defaultRequirement]
+    expand: {
+        requirements: [defaultRequirement]
+    }
 }
 
 

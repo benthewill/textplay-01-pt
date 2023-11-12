@@ -50,7 +50,7 @@ export default function GetShot({params} : { params: {id:string}}) {
     // }
 
     return (
-        <div className='flex flex-col w-3/4 content-start'>
+        <div className='flex flex-col content-start justify-center min-w-[50vw] align-middle items-center'>
             <ShotSub shotID={params.id}/>
             {/* <ShotSub2 shotID={params.id}/> */}
             {/* <Card className=' content-center' radius='none'>

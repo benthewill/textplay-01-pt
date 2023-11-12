@@ -1,11 +1,11 @@
 "use client";
-import React, {useCallback, useEffect, useState} from "react";
-import { isEqual } from "lodash";
+import React, { useCallback, useEffect, useState} from "react";
+import { isEqual, cloneDeep } from "lodash";
 import { useForm, SubmitHandler, useFieldArray, FormProvider, useFormContext, FieldValues, useWatch, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DevTool } from "@hookform/devtools";
 import { useEffectOnce } from 'usehooks-ts'
-import {RadioGroup, Radio} from "@nextui-org/react";
+import { RadioGroup, Radio} from "@nextui-org/react";
 import {
     Card,
     CardHeader,
@@ -17,21 +17,26 @@ import {
     SelectItem
 } from '@nextui-org/react'
 // import { Button } from "../ui/button";
-import {Button, ButtonGroup} from '@nextui-org/react'
+import { Button, ButtonGroup} from '@nextui-org/react'
 import { ScrollShadow } from "@nextui-org/react";
 import { gateTypes, defaultRequirement, operatorTypes, defaultDecision, defaultNarration, defaultShot, inventoryItems, infectionItems, accessItems, ANDRequirement, reqItem, requirementCategories } from "@/lib/validations/shots";
 import { InputBuild } from "./InputBuild";
-import {Tabs, Tab} from '@nextui-org/react'
+import { Tabs, Tab } from '@nextui-org/react'
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration, deleteNarrationByID, getItems, getInfections } from "@/lib/db/shots";
+import { createShot, updateShot, getSequenceFromID, getSceneFromID, getShot, createNarration, updateNarration, deleteNarration, getItems, getInfections, createDecision, deleteDecision, updateDecision } from "@/lib/db/shots";
 import { Textarea } from "@nextui-org/react";
 import { PocketBaseInit } from "@/lib/db/pocketbaseinit";
 
 export function ShotSub ({shotID}:{shotID:string}) {
     const queryClient = useQueryClient()
     const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({
-        queryFn: () => getShot(shotID), queryKey: ["shot", shotID], notifyOnChangeProps: "all"
+        queryFn: () => getShot(shotID), queryKey: ["shot", shotID],
+        notifyOnChangeProps: "all",
+        refetchOnWindowFocus: false
     })
+
+    const copiedData = {...data}
+
     const {data:itemsData} = useQuery({
         queryFn: () => getItems(), queryKey: ["getItems"]
     })
@@ -85,13 +90,31 @@ export function ShotSub ({shotID}:{shotID:string}) {
         name: `expand.possibleNarrations`
     })
 
+    const {
+        fields:posDecFields,
+        append:posDecAppend,
+        prepend:posDecPrepend,
+        remove:posDecRemove,
+        swap:posDecSwap,
+        insert:posDecInsert,
+        move: posDecMove,
+        update: posDecUpdate} = useFieldArray({
+        control,
+        name: `expand.possibleDecisions`
+    })
+
     useEffect(() => {
-        data?.expand?.possibleNarrations.forEach((field: { [key: string]: any }, index: number) => {
+        data?.expand?.possibleNarrations?.forEach((field: { [key: string]: any }, index: number) => {
             Object.keys(field).forEach((key) => {
                 posNarrUpdate(index, field[key])
             })
         })
-    }, [data, posNarrUpdate])
+        data?.expand?.possibleDecisions?.forEach((field: { [key: string]: any }, index: number) => {
+            Object.keys(field).forEach((key) => {
+                posDecUpdate(index, field[key])
+            })
+        })
+    }, [data, posDecUpdate, posNarrUpdate])
 
     // useEffect(() => {
     //     refetch()
@@ -102,26 +125,14 @@ export function ShotSub ({shotID}:{shotID:string}) {
     //         })
     //     })
     // },[data?.expand?.possibleNarrations, posNarrUpdate, queryClient, refetch, reset, shotID])
-    
-    const {
-        fields:posDecFields,
-        append:posDecAppend,
-        prepend:posDecPrepend,
-        remove:posDecRemove,
-        swap:posDecSwap,
-        insert:posDecInsert,
-        move: posDecMove} = useFieldArray({
-        control,
-        name: `expand.possibleDecisions`
-    })
+
 
     const formWatch = useWatch({
         control
     })
 
     const [selectedNarrTab, setSelectedNarrTab] = useState(0)
-    const [selectedDecTab, setSelectedDecTab] = useState('dec0')
-    const [narrToDel, setNarrToDel] = useState([''])
+    const [selectedDecTab, setSelectedDecTab] = useState(0)
 
 
     const {mutate:addBlankNarration, data: blankNarrData} = useMutation({
@@ -150,18 +161,40 @@ export function ShotSub ({shotID}:{shotID:string}) {
     })
 
     const {mutate:deleteNarr} = useMutation({
-        mutationFn: ({narrID}:any) => {
-            return deleteNarrationByID(narrID)
+        mutationFn: ({narrData}:any) => {
+            return deleteNarration(narrData)
         }
     })
 
-    async function removeNarrField (idx:any) {
-        const narrId = getValues(`expand.possibleNarrations[${idx}].id`)
-        const narrIdWatch = watch(`expand.possibleNarrations[${idx}].id`)
-        console.log(narrId);
-        console.log(narrIdWatch);
-        setNarrToDel(old => [...old, narrId])
-    }
+
+    const {mutate: addDecision} = useMutation({
+        mutationFn: ({decData}:any) => {
+            return createDecision(decData, shotID)},
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
+        }
+    })
+
+    const {mutate:updateDec} = useMutation({
+        mutationFn: ({decID, newData}:any) =>  {
+            return updateDecision(decID, newData)
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
+        }
+    })
+
+    const {mutate:deleteDec} = useMutation({
+        mutationFn: ({decData}:any) => {
+            return deleteDecision(decData)
+        }
+    })
+
+    const {mutate:mutateShot} = useMutation({
+        mutationFn: ({newShotData}:any) => {
+            return updateShot(shotID, newShotData)
+        }
+    })
 
     // useEffect(() => {
     //     // setFocus(`expand.possibleNarrations[0].narrationContent`)
@@ -186,17 +219,27 @@ export function ShotSub ({shotID}:{shotID:string}) {
         })
     }
 
+    const [serverNarrToDelPush, setserverNarrToDelPush] = useState([''])
+    const [serverDecToDelPush, setserverDecToDelPush] = useState([''])
+
     const Mutate = async (update:FieldValues) => {
         const pb = await PocketBaseInit()
         console.log(update);
-        // console.log(narrToDel.slice(1));
-
         const serverNarr = data?.expand.possibleNarrations
+        const serverDec = data?.expand.possibleDecisions
 
         let newNarrArr: any[] = []
-        let serverNarrToDel: any[] = []
+        let serverNarrToDel: any[] = [...serverNarrToDelPush]
+        serverNarrToDel.shift()
         let serverNarrToUpdate: any[] = []
         const narrToUpdate = update.expand.possibleNarrations
+
+        let newDecArr: any[] = []
+        let serverDecToDel: any[] = [...serverDecToDelPush]
+        serverDecToDel.shift()
+        let serverDecToUpdate: any[] = []
+        const decToUpdate = update.expand.possibleDecisions
+
 
         narrToUpdate.map((newNarr:any, newNarridx:number) => {
             if (newNarr.dbID === "new") {
@@ -208,19 +251,6 @@ export function ShotSub ({shotID}:{shotID:string}) {
             }
         })
 
-        serverNarr.forEach((serverNarrItem:any, serverNarrIdx:number) => {
-            const test = narrToUpdate.find((x:any) => x.dbID === serverNarrItem.dbID)
-            if (test) {
-
-            } else {
-                serverNarrToDel.push(serverNarrItem.dbID)
-            }
-        })
-
-        console.log("newNarrArr", newNarrArr);
-        console.log("serverNarrToDel", serverNarrToDel);
-        console.log("serverNarrToUpdate", serverNarrToUpdate);
-
         newNarrArr.forEach((n:any) => {
             addNarration({narrData: n})
         })
@@ -229,15 +259,42 @@ export function ShotSub ({shotID}:{shotID:string}) {
             updateNarr({narrID: n.id, newData: n})
         })
 
-        const narrID = data?.expand?.possibleNarrations[0].id
-        const narrUpdateData = update.expand.possibleNarrations[0]
-        const narrServerArr = data?.expand?.possibleNarrations
-        const narrLocalArr = update.expand.possibleNarrations
+        serverNarrToDel.forEach((n:any) => {
+            let stringified = JSON.parse(JSON.stringify(n).replaceAll("dbID", "id"))
+            deleteNarr({narrData: stringified})
+        })
+        decToUpdate.map((newDec:any, newDecidx:number) => {
+            if (newDec.dbID === "new") {
+                newDecArr.push(newDec)
+                delete newDec.dbID
+            } else {
+                let stringified = JSON.parse(JSON.stringify(newDec).replaceAll('"dbID"', '"id"'))
+                serverDecToUpdate.push(stringified)
+            }
+        })
+
+        newDecArr.forEach((n:any) => {
+            addDecision({decData: n})
+        })
+
+        serverDecToUpdate.forEach((n:any) => {
+            updateDec({decID: n.id, newData: n})
+        })
+
+        serverDecToDel.forEach((n:any) => {
+            let stringified = JSON.parse(JSON.stringify(n).replaceAll("dbID", "id"))
+            deleteDec({decData: stringified})
+        })
+
+        // const narrID = data?.expand?.possibleNarrations[0].id
+        // const narrUpdateData = update.expand.possibleNarrations[0]
+        // const narrServerArr = data?.expand?.possibleNarrations
+        // const narrLocalArr = update.expand.possibleNarrations
 
         // console.log(narrLocalArr);
 
-        let updatedNarrArr:any = []
-        updatedNarrArr = [...narrLocalArr]
+        // let updatedNarrArr:any = []
+        // updatedNarrArr = [...narrLocalArr]
 
         // for (let i = 0; i < updatedNarrArr.length; i++) {
         //     if (updatedNarrArr[i].id === "new") {
@@ -253,6 +310,24 @@ export function ShotSub ({shotID}:{shotID:string}) {
         //         posNarrUpdate(index, field[key])
         //     })
         // })
+
+        const shotUpdateData = {...update}
+        delete shotUpdateData.expand
+        // delete shotUpdateData.possibleNarrations
+        // delete shotUpdateData.possibleDecisions
+        // delete shotUpdateData.dbID
+        // delete shotUpdateData.updated
+        // delete shotUpdateData.created
+        // delete shotUpdateData.sequenceID
+        // delete shotUpdateData.sceneID
+        // delete shotUpdateData.collectionID
+        // delete shotUpdateData.collectionName
+
+        if (data?.shotName !== shotUpdateData.shotName || data?.shotDetail !== shotUpdateData.shotDetail) {
+            console.log(shotUpdateData);
+            mutateShot({newShotData: shotUpdateData})
+        }
+
 
 
         // repopulate()
@@ -277,10 +352,10 @@ export function ShotSub ({shotID}:{shotID:string}) {
 
     if (data) {
         return (
-            <div className="flex flex-col max-w-[80vw] min-w-[50vw]">
+            <div className="flex flex-col max-w-[80vw] min-w-[75vw]">
                 <FormProvider {...methods}>
-                <form onSubmit={handleSubmit(Mutate)}>
-                <Card className=" rounded-none shadow-sm border-2">
+                <form onSubmit={handleSubmit(Mutate)} id={`${shotID}-input`}>
+                <Card className=" border-1 border-red-800 p-4 mb-10">
                     <CardHeader>
                         <div  className="flex flex-col">
                             <div>
@@ -289,7 +364,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                 <Input
                                     radius='none'
                                     variant='underlined'
-                                    defaultValue={data.shotName}
+                                    defaultValue={copiedData.shotName}
                                     label="Shot Name"
                                     {...register("shotName")}
                                 />
@@ -305,14 +380,13 @@ export function ShotSub ({shotID}:{shotID:string}) {
                             variant="bordered"
                             radius="none"
                             label="Shot Detail"
-                            defaultValue={data.shotDetail}
+                            defaultValue={copiedData.shotDetail}
                             {...register("shotDetail")}
                         />
-                        <Tabs defaultSelectedKey="possibleNarrations" radius="none" fullWidth className="   mt-4 border-t-2 border-x-2 " classNames={{
-                                tabList: "bg-white"
-                        }}>
+                        <Tabs defaultSelectedKey="possibleNarrations" radius="none" fullWidth className="   mt-4 " 
+                        >
                             <Tab key="possibleNarrations" title="Narrations" className="p-0 z-50">
-                                <Card className="rounded-none z-0 shadow-none border-2">
+                                <Card className="rounded-none z-0 shadow-none">
                                         <CardHeader className="flex flex-row justify-between items-end">
                                             <div>
                                                 Narration Variants
@@ -360,7 +434,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                             <div key={posNarrField.id} className={`flex flex-col w-full ${selectedNarrTab === posNarrIdx ? "" : "hidden"}`}>
                                                                 <Input
                                                                 className="hidden"
-                                                                defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.dbID}
+                                                                defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.dbID}
                                                                 {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
                                                                 <Textarea
                                                                     onFocus={() => console.log("touched")}
@@ -370,7 +444,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                     variant="bordered"
                                                                     radius="none"
                                                                     label="Narration Content"
-                                                                    defaultValue={data.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
+                                                                    defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
                                                                     {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
                                                                 />
                                                                 <Button
@@ -378,8 +452,9 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                     radius="none"
                                                                     size="sm"
                                                                     onClick={() => {
-                                                                    posNarrRemove(posNarrIdx)
-                                                                    // const acquiredData = getValues(`expand.possibleNarrations`)
+                                                                        setserverNarrToDelPush(old => [...old, copiedData.expand?.possibleNarrations[posNarrIdx]])
+                                                                        posNarrRemove(posNarrIdx)
+                                                                        copiedData.expand.possibleNarrations.splice(posNarrIdx,1)
                                                                     // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
                                                                 }}>
                                                                     Delete
@@ -402,15 +477,106 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                         </CardFooter>
                                 </Card>
                             </Tab>
+                            <Tab key="possibleDecisions" title="Decisions" className="p-0 z-50">
+                            <Card className="rounded-none z-0 shadow-none">
+                                        <CardHeader className="flex flex-row justify-between items-end">
+                                            <div>
+                                                Decision Variants
+                                            </div>
+                                            <div>
+                                                <Button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    // e.preventDefault()
+                                                    posDecAppend({
+                                                        "dbID" : "new",
+                                                        ...defaultDecision
+                                                    })
+
+                                                    setSelectedDecTab(posDecFields.length)
+                                                }}
+                                                color="primary"
+                                                variant="flat" radius="none" size={"sm"}>+ Decision</Button>
+                                            </div>
+                                        </CardHeader>
+                                        <Divider/>
+                                        <CardBody className="flex flex-row min-h-[200px]self-stretch">
+                                            <div className="py-4 flex flex-row w-full">
+                                                <div className="flex flex-col items-center pr-5">
+                                                    {
+                                                        posDecFields.map((posDecField:any,posDecIdx:any) => {
+
+                                                            return(
+                                                                <div key={posDecField.id}>
+                                                                    <Button type="button" color="primary" onClick={() =>setSelectedDecTab(posDecIdx)}
+                                                                        variant={selectedDecTab === posDecIdx ? "bordered" : "flat"}
+                                                                        radius="none" className=" font-mono"
+                                                                    >
+                                                                        Variant # {posDecIdx + 1}
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    }
+
+                                                </div>
+                                                {posDecFields.map(
+                                                    (posDecField:any, posDecIdx:any) => {
+                                                        return (
+                                                            <div key={posDecField.id} className={`flex flex-col w-full ${selectedDecTab === posDecIdx ? "" : "hidden"}`}>
+                                                                <Input
+                                                                className="hidden"
+                                                                defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.dbID}
+                                                                {...register(`expand.possibleDecisions[${posDecIdx}].dbID`)}/>
+                                                                <Textarea
+                                                                    onFocus={() => console.log("touched")}
+                                                                    onFocusCapture={() => console.log("touched")}
+                                                                    maxRows={6}
+                                                                    minRows={6}
+                                                                    variant="bordered"
+                                                                    radius="none"
+                                                                    label="Decision Content"
+                                                                    defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.decisionContent}
+                                                                    {...register(`expand.possibleDecisions[${posDecIdx}].decisionContent`)}
+                                                                />
+                                                                <Button
+                                                                    color="secondary"
+                                                                    radius="none"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setserverDecToDelPush(old => [...old, copiedData.expand?.possibleDecisions?.[posDecIdx]])
+                                                                        posDecRemove(posDecIdx)
+                                                                        copiedData.expand.possibleDecisions.splice(posDecIdx,1)
+                                                                    // setValue(`expand.possibleDecisions`, [...acquiredData.slice(0, posDecIdx), ...acquiredData.slice(posDecIdx + 1)])
+                                                                }}>
+                                                                    Delete
+                                                                </Button>
+                                                                <RequirementGates
+                                                                    reqType="possibleDecisions"
+                                                                    parentIdx={posDecIdx}
+                                                                    control={control}
+                                                                    watcher={formWatch}
+                                                                    shotID={shotID}
+                                                                />
+                                                            </div>
+                                                        )
+                                                    }
+                                                )}
+                                            </div>
+                                        </CardBody>
+                                        <CardFooter>
+                                            <p>Double check the contents, big man.</p>
+                                        </CardFooter>
+                                </Card>
+                            </Tab>
                         </Tabs>
                     </ScrollShadow>
                     </CardBody>
                     <Divider/>
-                    <CardFooter className=" bg-slate-50">
+                    <CardFooter>
                         <Button className="mr-4" radius="none" color="primary" size="lg" type="submit" variant="solid">Submit Changes</Button>
                         <p className=" text-xs ">Sequence #{sequenceData?.sequenceNum} - Scene #{sceneData?.sceneNum}</p>
                         <p className=" text-xs ">{isFetching && "Is Fetching"}</p>
-                        <p className=" text-xs ">{JSON.stringify(narrToDel, null, 1)}</p>
                         <p className=" text-xs ">{isRefetching && "Is Re-Fetching"}</p>
                     </CardFooter>
                 </Card>
@@ -426,6 +592,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                     {
                         isSubmitted && <p>Is Submitted</p>
                     }
+                    <p>{JSON.stringify(serverNarrToDelPush)}</p>
                 </div>
                 <div className="flex flex-row max-w-[20vw]">
                     {
@@ -433,7 +600,11 @@ export function ShotSub ({shotID}:{shotID:string}) {
                         <pre className=" text-xs  border-r-2 pr-4">{JSON.stringify(data, null, 1)}</pre>
                     }
                     {
-                        data &&
+                        copiedData &&
+                        <pre className=" text-xs  border-r-2 pr-2 pl-2">{JSON.stringify(copiedData, null, 1)}</pre>
+                    }
+                    {
+                        copiedData &&
                         <pre className=" text-xs pr-2 pl-4">{JSON.stringify(formWatch, null, 2)}</pre>
                     }
                 </div>
@@ -447,7 +618,8 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
     const {register, getValues} = useFormContext()
     const queryClient = useQueryClient()
     const data : any = queryClient.getQueryData(["shot", shotID])
-    const requirementData = data.expand[reqType][parentIdx]?.expand?.requirements
+    const copiedData = {...data}
+    const requirementData = copiedData.expand?.[reqType]?.[parentIdx]?.expand?.requirements
     // console.log(requirementData[0]);
     // console.log(defaultRequirement);
     const {
@@ -463,12 +635,12 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
         name: `expand.${reqType}[${parentIdx}].expand.requirements`
     })
     useEffect(() => {
-        data.expand[reqType][parentIdx]?.expand?.requirements.forEach((field: { [key: string]: any }, index: number) => {
+        copiedData.expand?.[reqType]?.[parentIdx]?.expand?.requirements?.forEach((field: { [key: string]: any }, index: number) => {
             Object.keys(field).forEach((key) => {
                 reqGateUpdate(index, field[key])
             })
         })
-    }, [data.expand, parentIdx, reqGateUpdate, reqType])
+    }, [copiedData.expand, parentIdx, reqGateUpdate, reqType])
 
     return (
         <div className="py-2">
@@ -506,7 +678,7 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
                                         {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].dbID`)}
                                     />
                                     <div className=" w-1/12 -mr-2 align-middle self-center">
-                                        <p className=" font-bold text-md -rotate-90">
+                                        <p className=" font-bold text-md -rotate-90 invisible">
                                             ITEM
                                         </p>
                                     </div>
@@ -566,7 +738,8 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
     const [useVal, setVal] = useState("")
     const queryClient = useQueryClient()
     const data : any = queryClient.getQueryData(["shot", shotID])
-    const reqItemData = data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems
+    const copiedData = {...data}
+    const reqItemData = copiedData.expand?.[reqType]?.[grandParentIdx]?.expand?.requirements?.[gateIdx]?.expand?.requirementItems
     const {register, getValues, setValue} = useFormContext()
     const {
         fields: reqItemFields,
@@ -581,14 +754,14 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
             name: `expand.${reqType}[${grandParentIdx}].expand.requirements[${gateIdx}].expand.requirementItems`
     })
     useEffect(() => {
-        data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems.forEach((field: { [key: string]: any }, index: number) => {
+        copiedData.expand?.[reqType]?.[grandParentIdx]?.expand?.requirements?.[gateIdx]?.expand?.requirementItems?.forEach((field: { [key: string]: any }, index: number) => {
             Object.keys(field).forEach((key) => {
                 reqItemUpdate(index, field[key])
             })
         })
-    }, [data.expand, gateIdx, grandParentIdx, reqItemUpdate, reqType])
+    }, [copiedData.expand, gateIdx, grandParentIdx, reqItemUpdate, reqType])
 
-    if (data) {
+    if (copiedData) {
             return (
                 <div className="flex flex-col w-full">
                     {
@@ -646,10 +819,11 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
     const {register, setValue, getValues} = useFormContext()
 
     const data : any = queryClient.getQueryData(["shot", shotID])
+    const copiedData = {...data}
     const itemsData : any = queryClient.getQueryData(["getItems"])
     const infectionsData : any = queryClient.getQueryData(["getInfections"])
 
-    const reqItemData = data.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems[reqItemIdx]
+    const reqItemData = copiedData.expand?.[reqType]?.[grandParentIdx]?.expand?.requirements?.[gateIdx]?.expand?.requirementItems?.[reqItemIdx]
 
     const [useOptions, setOptions]:any[] = useState([])
     const [useSelected, setSelected] = useState('inventory')
@@ -677,6 +851,7 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                 label="Category"
                 selectedKeys={[useSelected]}
                 className="w-2/3"
+                id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].category`}
                 onSelectionChange={(e:any) => {
                     if (e.anchorKey === "infection" && useSelected !== "infection") {
                         setInfection(infectionsData[1].dbID)
@@ -697,8 +872,8 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
 
                     }
             }}>
-                <SelectItem key="infection" value="infection">Infection</SelectItem>
-                <SelectItem key="inventory" value="inventory">Inventory</SelectItem>
+                <SelectItem key="infection" value="infection" id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].category` + `infection`}>Infection</SelectItem>
+                <SelectItem key="inventory" value="inventory" id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].category` + `inventory`}>Inventory</SelectItem>
             </Select>
             <div className={`${useSelected === "inventory"? "" : "hidden"} w-full`}>
                 <Controller
@@ -708,6 +883,8 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                                 radius="none"
                                 selectedKeys={[useInventory]}
                                 defaultSelectedKeys={[useInventory]}
+                                id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`}
+                                name={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`}
                                 onSelectionChange={(e:any) => {
                                     return setInventory(e.anchorKey)
                                 }}
@@ -715,15 +892,15 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                                 {...field}
                             >
                                 {
-                                    itemsData.map((item:any) => {
+                                    itemsData?.map((item:any) => {
                                         if (item.dbID === "placeholderData") {
                                             return (
-                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID}>
+                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID} >
                                                 {item.itemName}
                                             </SelectItem>)
                                         }
                                         return (
-                                            <SelectItem key={item.dbID} value={item.dbID}>
+                                            <SelectItem key={item.dbID} value={item.dbID} >
                                                 {item.itemName}
                                             </SelectItem>
                                         )
@@ -742,6 +919,7 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                         return (
                             <Select
                                 radius="none"
+                                id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`}
                                 selectedKeys={[useInfection]}
                                 defaultSelectedKeys={[useInfection]}
                                 onSelectionChange={(e:any) => {
@@ -754,12 +932,12 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                                     infectionsData?.map((item:any) => {
                                         if (item.dbID === "placeholderData") {
                                             return (
-                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID}>
+                                            <SelectItem className="hidden" key={item.dbID} value={item.dbID} >
                                                 {item.infectionName}
                                             </SelectItem>)
                                         }
                                         return (
-                                            <SelectItem key={item.dbID} value={item.dbID}>
+                                            <SelectItem key={item.dbID} value={item.dbID} id={`${reqType}-${item.dbID}`}>
                                                 {item.infectionName}
                                             </SelectItem>
                                         )

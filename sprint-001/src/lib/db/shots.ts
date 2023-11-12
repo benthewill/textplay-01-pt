@@ -14,7 +14,7 @@ export async function getAllShots () {
 export async function getShot (id:string) {
     const pb = await PocketBaseInit()
     const records = await pb.collection('shots').getOne(id, {
-        expand: 'possibleNarrations.requirements.requirementItems, possibleDecisions.requirements,requirementItems'
+        expand: 'possibleNarrations.requirements.requirementItems, possibleDecisions.requirements.requirementItems'
     })
     let newNarrs = records.expand?.possibleNarrations.map((item:any) => {
         let newForm = {
@@ -50,9 +50,18 @@ export async function getInfections() {
 }
 
 export async function updateShot (id:any, newShotData:any) {
+    console.log(id)
+    console.log(newShotData);
     const pb = await PocketBaseInit()
     const records = await pb.collection('shots').update(id, newShotData)
+    console.log(records);
     return records
+}
+
+export async function getNarrationByID (narrID:any) {
+    const pb = await PocketBaseInit()
+    const record = await pb.collection('narration').getOne(narrID)
+    return record
 }
 
 export async function updateNarration (narrID:any, newData:any) {
@@ -88,20 +97,12 @@ export async function updateNarration (narrID:any, newData:any) {
     return record
 }
 
-export async function getNarrationByID (narrID:any) {
+export async function deleteNarration (narrData:any) {
     const pb = await PocketBaseInit()
-    const record = await pb.collection('narration').getOne(narrID)
+    console.log(narrData);
+    console.log(narrData.id);
+    const record = await pb.collection('narration').delete(narrData.id)
     return record
-}
-
-export async function deleteNarrationByID (narrID:any) {
-    const pb = await PocketBaseInit()
-    const record = await pb.collection('narration').delete(narrID)
-    return record
-}
-
-export async function getAllNarrationSHOT () {
-
 }
 
 export async function createNarration (newData:any, shotID:string) {
@@ -135,7 +136,6 @@ export async function createNarration (newData:any, shotID:string) {
 
         const updateNarrRecord = await pb.collection('narration').update(record?.id, updateNarrRecordData)
 
-
         const newNarrAppend = {
             "possibleNarrations+" : record?.id
         }
@@ -145,7 +145,89 @@ export async function createNarration (newData:any, shotID:string) {
     } catch (e) {
         console.log(e);
     }
+}
 
+export async function updateDecision (decID:any, newData:any) {
+    const pb = await PocketBaseInit()
+    console.log(decID);
+    console.log(newData);
+    let newReqLogic:any = []
+
+    const tempNewData:any = {...newData}
+    delete tempNewData.expand
+
+    for (let [reqLogicIdx, reqLogic] of newData.expand.requirements.entries()) {
+        if (reqLogic.id === "new") {
+            newReqLogic.push(reqLogic)
+        } else {
+            updateRequirementLogic(reqLogic.id, reqLogic)
+        }
+    }
+
+    let newReqLogicRecordID: any[] = []
+
+    for (let [reqLogicIdx, reqLogic] of newReqLogic.entries()) {
+        const newReqLogicRecord = await createRequirementLogic(reqLogic)
+        newReqLogicRecordID.push(newReqLogicRecord?.id)
+    }
+
+    const updateDecRecordData = {
+        "requirements+" : [...newReqLogicRecordID],
+        ...tempNewData
+    }
+
+    const record = await pb.collection('decision').update(decID, updateDecRecordData)
+    return record
+}
+
+export async function deleteDecision (decData:any) {
+    const pb = await PocketBaseInit()
+    console.log(decData);
+    console.log(decData.id);
+    const record = await pb.collection('decision').delete(decData.id)
+    return record
+}
+
+export async function createDecision (newData:any, shotID:string) {
+    const pb = await PocketBaseInit()
+    try {
+        const newDecRecord = {
+            "shotID" : shotID,
+            ...newData
+        }
+
+        const record = await pb.collection('decision').create(newDecRecord)
+        console.log(record);
+
+        let reqGates:any[] = []
+        console.log(reqGates);
+
+        if (newDecRecord.expand.requirements.length !== 0) {
+            for (let [reqGateIdx, reqGate] of newDecRecord.expand.requirements.entries()) {
+                delete reqGate.dbID
+                console.log(reqGate);
+                const newReqGateRecord: any = await createRequirementLogic(reqGate)
+                console.log(newReqGateRecord);
+                const newReqGateID = await newReqGateRecord?.id
+                reqGates.push(newReqGateID)
+            }
+        }
+
+        const updateDecRecordData = {
+            "requirements+": [...reqGates]
+        }
+
+        const updateDecRecord = await pb.collection('decision').update(record?.id, updateDecRecordData)
+
+        const newDecAppend = {
+            "possibleDecisions+" : record?.id
+        }
+        const updateShot = await pb.collection('shots').update(shotID, newDecAppend)
+        return {"newDecRecord" : record, "updatedShot" : updateShot}
+
+    } catch (e) {
+        console.log(e);
+    }
 }
 
 export async function createRequirementLogic(newData:any) {
