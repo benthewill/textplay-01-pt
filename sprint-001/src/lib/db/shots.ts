@@ -2,6 +2,45 @@ import { checkboxGroup } from "@nextui-org/react";
 import { PocketBaseInit } from "./pocketbaseinit";
 import PocketBase from 'pocketbase'
 
+export async function getAllSequences() {
+    const pb = await PocketBaseInit()
+    const records = await pb.collection('sequences').getFullList({
+        sort: 'sequenceNum'
+    })
+    console.log(records);
+    return records
+}
+
+export async function getAllScenesBySequence(sequenceID:string) {
+    console.log(sequenceID);
+    const pb = await PocketBaseInit()
+    const records = await pb.collection('scenes').getList(1,50, {
+        filter: `sequenceID='${sequenceID}'`
+    })
+    return records.items
+}
+
+export async function getAllShotsByScene(sequenceID:string, sceneID:string) {
+    const pb = await PocketBaseInit()
+    const records = await pb.collection('shots').getList(1, 50, {
+        filter: `sceneID= '${sceneID}' && sequenceID='${sequenceID}'`,
+        expand: 'possibleDecisions'
+    })
+
+    return records.items
+}
+
+export async function addConnection(sourceID:string, targetID:string) {
+    const pb = await PocketBaseInit()
+    const data = {
+        "targetShotID": targetID
+    }
+    console.log(data);
+    const records = await pb.collection('decision').update(sourceID, data)
+    console.log(records);
+    return records
+}
+
 export async function getAllShots () {
     const pb = await PocketBaseInit()
     const records = await pb.collection('shots').getFullList({

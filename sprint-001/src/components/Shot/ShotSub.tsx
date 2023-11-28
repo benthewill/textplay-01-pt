@@ -28,12 +28,15 @@ import { Textarea } from "@nextui-org/react";
 import { PocketBaseInit } from "@/lib/db/pocketbaseinit";
 
 export function ShotSub ({shotID}:{shotID:string}) {
+    // console.log(shotID);
     const queryClient = useQueryClient()
     const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({
         queryFn: () => getShot(shotID), queryKey: ["shot", shotID],
-        notifyOnChangeProps: "all",
-        refetchOnWindowFocus: false
+        refetchOnWindowFocus: false,
+        enabled: shotID !== ''
     })
+
+    // console.log(data);
 
     const copiedData = {...data}
 
@@ -104,6 +107,10 @@ export function ShotSub ({shotID}:{shotID:string}) {
     })
 
     useEffect(() => {
+        refetch()
+    }, [refetch, shotID])
+
+    useEffect(() => {
         data?.expand?.possibleNarrations?.forEach((field: { [key: string]: any }, index: number) => {
             Object.keys(field).forEach((key) => {
                 posNarrUpdate(index, field[key])
@@ -133,15 +140,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
 
     const [selectedNarrTab, setSelectedNarrTab] = useState(0)
     const [selectedDecTab, setSelectedDecTab] = useState(0)
-
-
-    const {mutate:addBlankNarration, data: blankNarrData} = useMutation({
-        mutationFn: () => createNarration({}, shotID),
-        mutationKey: ["blank narration for", shotID],
-        onSuccess: async () => {
-            queryClient.invalidateQueries({queryKey: ["shot", shotID]})
-        }
-    })
+    const [selectedTab, setSelectedTab] = useState('possibleNarrations')
 
     const {mutate: addNarration} = useMutation({
         mutationFn: ({narrData}:any) => {
@@ -165,7 +164,6 @@ export function ShotSub ({shotID}:{shotID:string}) {
             return deleteNarration(narrData)
         }
     })
-
 
     const {mutate: addDecision} = useMutation({
         mutationFn: ({decData}:any) => {
@@ -225,8 +223,9 @@ export function ShotSub ({shotID}:{shotID:string}) {
     const Mutate = async (update:FieldValues) => {
         const pb = await PocketBaseInit()
         console.log(update);
-        const serverNarr = data?.expand.possibleNarrations
-        const serverDec = data?.expand.possibleDecisions
+
+        const serverNarr = data?.expand?.possibleNarrations
+        const serverDec = data?.expand?.possibleDecisions
 
         let newNarrArr: any[] = []
         let serverNarrToDel: any[] = [...serverNarrToDelPush]
@@ -324,7 +323,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
         // delete shotUpdateData.collectionName
 
         if (data?.shotName !== shotUpdateData.shotName || data?.shotDetail !== shotUpdateData.shotDetail) {
-            console.log(shotUpdateData);
+            // console.log(shotUpdateData);
             mutateShot({newShotData: shotUpdateData})
         }
 
@@ -350,43 +349,46 @@ export function ShotSub ({shotID}:{shotID:string}) {
         // mutate(data)
     }
 
-    if (data) {
+    if (data && shotID !== '') {
         return (
-            <div className="flex flex-col max-w-[80vw] min-w-[75vw]">
+            <div className="flex flex-col">
                 <FormProvider {...methods}>
                 <form onSubmit={handleSubmit(Mutate)} id={`${shotID}-input`}>
-                <Card className=" border-1 border-red-800 p-4 mb-10">
+                <Card radius="sm" className=" bg-zinc-900 p-2">
                     <CardHeader>
-                        <div  className="flex flex-col">
-                            <div>
-                            </div>
+                        <div  className="flex flex-row justify-between items-center w-full">
                             <div>
                                 <Input
                                     radius='none'
                                     variant='underlined'
                                     defaultValue={copiedData.shotName}
                                     label="Shot Name"
+                                    labelPlacement="outside"
+                                    className=" text-3xl"
                                     {...register("shotName")}
                                 />
+                            </div>
+                            <div>
+                                <Button className="mr-4" radius="sm" type="submit" variant="solid">Submit Changes</Button>
                             </div>
                         </div>
                     </CardHeader>
                     <Divider/>
-                    <CardBody>
                     <ScrollShadow size={20} className="h-[50vh]">
+                    <CardBody>
                         <Textarea
                             maxRows={6}
                             minRows={6}
                             variant="bordered"
-                            radius="none"
+                            radius="sm"
                             label="Shot Detail"
                             defaultValue={copiedData.shotDetail}
                             {...register("shotDetail")}
                         />
-                        <Tabs defaultSelectedKey="possibleNarrations" radius="none" fullWidth className="   mt-4 " 
+                        {/* <Tabs defaultSelectedKey="possibleNarrations" radius="sm" fullWidth className="   mt-4 " 
                         >
-                            <Tab key="possibleNarrations" title="Narrations" className="p-0 z-50">
-                                <Card className="rounded-none z-0 shadow-none">
+                            <Tab key="possibleNarrations" title="Narrations" className="p-0">
+                                <Card className="rounded-none shadow-none bg-zinc-900">
                                         <CardHeader className="flex flex-row justify-between items-end">
                                             <div>
                                                 Narration Variants
@@ -404,7 +406,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                     setSelectedNarrTab(posNarrFields.length)
                                                 }}
                                                 color="primary" 
-                                                variant="flat" radius="none" size={"sm"}>+ Narration</Button>
+                                                variant="flat" radius="sm" size={"sm"}>+ Narration</Button>
                                             </div>
                                         </CardHeader>
                                         <Divider/>
@@ -416,11 +418,11 @@ export function ShotSub ({shotID}:{shotID:string}) {
 
                                                             return(
                                                                 <div key={posNarrField.id}>
-                                                                    <Button type="button" color="primary" onClick={() =>setSelectedNarrTab(posNarrIdx)}
+                                                                    <Button type="button" onClick={() =>setSelectedNarrTab(posNarrIdx)}
                                                                         variant={selectedNarrTab === posNarrIdx ? "bordered" : "flat"}
-                                                                        radius="none" className=" font-mono"
+                                                                        size="sm" className=" font-mono text-xs -p-1"
                                                                     >
-                                                                        Variant # {posNarrIdx + 1}
+                                                                        #{posNarrIdx + 1}
                                                                     </Button>
                                                                 </div>
                                                             )
@@ -437,19 +439,17 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                 defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.dbID}
                                                                 {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
                                                                 <Textarea
-                                                                    onFocus={() => console.log("touched")}
-                                                                    onFocusCapture={() => console.log("touched")}
                                                                     maxRows={6}
                                                                     minRows={6}
                                                                     variant="bordered"
-                                                                    radius="none"
+                                                                    radius="sm"
                                                                     label="Narration Content"
                                                                     defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
                                                                     {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
                                                                 />
                                                                 <Button
                                                                     color="secondary"
-                                                                    radius="none"
+                                                                    radius="sm"
                                                                     size="sm"
                                                                     onClick={() => {
                                                                         setserverNarrToDelPush(old => [...old, copiedData.expand?.possibleNarrations[posNarrIdx]])
@@ -460,6 +460,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                     Delete
                                                                 </Button>
                                                                 <RequirementGates
+                                                                    key={shotID}
                                                                     reqType="possibleNarrations"
                                                                     parentIdx={posNarrIdx}
                                                                     control={control}
@@ -477,8 +478,8 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                         </CardFooter>
                                 </Card>
                             </Tab>
-                            <Tab key="possibleDecisions" title="Decisions" className="p-0 z-50">
-                            <Card className="rounded-none z-0 shadow-none">
+                            <Tab key="possibleDecisions" title="Decisions" className="p-0 ">
+                                <Card className="rounded-none shadow-none bg-zinc-900">
                                         <CardHeader className="flex flex-row justify-between items-end">
                                             <div>
                                                 Decision Variants
@@ -496,7 +497,7 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                     setSelectedDecTab(posDecFields.length)
                                                 }}
                                                 color="primary"
-                                                variant="flat" radius="none" size={"sm"}>+ Decision</Button>
+                                                variant="flat" radius="sm" size={"sm"}>+ Decision</Button>
                                             </div>
                                         </CardHeader>
                                         <Divider/>
@@ -508,11 +509,11 @@ export function ShotSub ({shotID}:{shotID:string}) {
 
                                                             return(
                                                                 <div key={posDecField.id}>
-                                                                    <Button type="button" color="primary" onClick={() =>setSelectedDecTab(posDecIdx)}
+                                                                    <Button type="button" onClick={() =>setSelectedDecTab(posDecIdx)}
                                                                         variant={selectedDecTab === posDecIdx ? "bordered" : "flat"}
-                                                                        radius="none" className=" font-mono"
+                                                                        size="sm" className=" font-mono text-xs -p-1"
                                                                     >
-                                                                        Variant # {posDecIdx + 1}
+                                                                        #{posDecIdx + 1}
                                                                     </Button>
                                                                 </div>
                                                             )
@@ -529,19 +530,17 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                                                 defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.dbID}
                                                                 {...register(`expand.possibleDecisions[${posDecIdx}].dbID`)}/>
                                                                 <Textarea
-                                                                    onFocus={() => console.log("touched")}
-                                                                    onFocusCapture={() => console.log("touched")}
                                                                     maxRows={6}
                                                                     minRows={6}
                                                                     variant="bordered"
-                                                                    radius="none"
+                                                                    radius="sm"
                                                                     label="Decision Content"
                                                                     defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.decisionContent}
                                                                     {...register(`expand.possibleDecisions[${posDecIdx}].decisionContent`)}
                                                                 />
                                                                 <Button
                                                                     color="secondary"
-                                                                    radius="none"
+                                                                    radius="sm"
                                                                     size="sm"
                                                                     onClick={() => {
                                                                         setserverDecToDelPush(old => [...old, copiedData.expand?.possibleDecisions?.[posDecIdx]])
@@ -569,20 +568,200 @@ export function ShotSub ({shotID}:{shotID:string}) {
                                         </CardFooter>
                                 </Card>
                             </Tab>
-                        </Tabs>
-                    </ScrollShadow>
+                        </Tabs> */}
+                        <div className="w-full flex flex-row justify-between">
+                            <Button className={`w-full mt-4 ${selectedTab === 'possibleNarrations' ? 'bg-zinc-500' : 'bg-zinc-700'}`} radius="none" onClick={() => setSelectedTab('possibleNarrations')}>Narrations</Button>
+                            <Button className={`w-full mt-4 ${selectedTab === 'possibleDecisions' ? ' bg-zinc-500' : 'bg-zinc-700'}`} radius="none" onClick={() => setSelectedTab('possibleDecisions')}>Decisions</Button>
+                        </div>
+                        <div className=" w-full ">
+                            <div title="Narrations" className={`${selectedTab === 'possibleNarrations' ? '' : 'hidden'}`}>
+                                <Card className="rounded-none shadow-none bg-zinc-900">
+                                        <CardHeader className="flex flex-row justify-between items-end">
+                                            <div>
+                                                Narration Variants
+                                            </div>
+                                            <div>
+                                                <Button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    // e.preventDefault()
+                                                    posNarrAppend({
+                                                        "dbID" : "new",
+                                                        ...defaultNarration
+                                                    })
+
+                                                    setSelectedNarrTab(posNarrFields.length)
+                                                }}
+                                                color="primary" 
+                                                variant="flat" radius="sm" size={"sm"}>+ Narration</Button>
+                                            </div>
+                                        </CardHeader>
+                                        <Divider/>
+                                        <CardBody className="flex flex-row min-h-[200px]self-stretch">
+                                            <div className="py-4 flex flex-row w-full">
+                                                <div className="flex flex-col items-center pr-5">
+                                                    {
+                                                        posNarrFields.map((posNarrField:any,posNarrIdx:any) => {
+
+                                                            return(
+                                                                <div key={posNarrField.id}>
+                                                                    <Button type="button" onClick={() =>setSelectedNarrTab(posNarrIdx)}
+                                                                        variant={selectedNarrTab === posNarrIdx ? "bordered" : "flat"}
+                                                                        size="sm" className=" font-mono text-xs -p-1"
+                                                                    >
+                                                                        #{posNarrIdx + 1}
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    }
+
+                                                </div>
+                                                {posNarrFields.map(
+                                                    (posNarrField:any, posNarrIdx:any) => {
+                                                        return (
+                                                            <div key={posNarrField.id} className={`flex flex-col w-full ${selectedNarrTab === posNarrIdx ? "" : "hidden"}`}>
+                                                                <Input
+                                                                className="hidden"
+                                                                defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.dbID}
+                                                                {...register(`expand.possibleNarrations[${posNarrIdx}].dbID`)}/>
+                                                                <Textarea
+                                                                    maxRows={6}
+                                                                    minRows={6}
+                                                                    variant="bordered"
+                                                                    radius="sm"
+                                                                    label="Narration Content"
+                                                                    defaultValue={copiedData.expand?.possibleNarrations[posNarrIdx]?.narrationContent}
+                                                                    {...register(`expand.possibleNarrations[${posNarrIdx}].narrationContent`)}
+                                                                />
+                                                                <Button
+                                                                    color="secondary"
+                                                                    radius="sm"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setserverNarrToDelPush(old => [...old, copiedData.expand?.possibleNarrations[posNarrIdx]])
+                                                                        posNarrRemove(posNarrIdx)
+                                                                        copiedData.expand.possibleNarrations.splice(posNarrIdx,1)
+                                                                    // setValue(`expand.possibleNarrations`, [...acquiredData.slice(0, posNarrIdx), ...acquiredData.slice(posNarrIdx + 1)])
+                                                                }}>
+                                                                    Delete
+                                                                </Button>
+                                                                <RequirementGates
+                                                                    key={shotID}
+                                                                    reqType="possibleNarrations"
+                                                                    parentIdx={posNarrIdx}
+                                                                    control={control}
+                                                                    watcher={formWatch}
+                                                                    shotID={shotID}
+                                                                />
+                                                            </div>
+                                                        )
+                                                    }
+                                                )}
+                                            </div>
+                                        </CardBody>
+                                        <CardFooter>
+                                            <p>Double check the contents, big man.</p>
+                                        </CardFooter>
+                                </Card>
+                            </div>
+                            <div title="Decisions" className={`p-0 ${selectedTab === 'possibleDecisions' ? '' : 'hidden'}`}>
+                                <Card className="rounded-none shadow-none bg-zinc-900">
+                                        <CardHeader className="flex flex-row justify-between items-end">
+                                            <div>
+                                                Decision Variants
+                                            </div>
+                                            <div>
+                                                <Button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    // e.preventDefault()
+                                                    posDecAppend({
+                                                        "dbID" : "new",
+                                                        ...defaultDecision
+                                                    })
+
+                                                    setSelectedDecTab(posDecFields.length)
+                                                }}
+                                                color="primary"
+                                                variant="flat" radius="sm" size={"sm"}>+ Decision</Button>
+                                            </div>
+                                        </CardHeader>
+                                        <Divider/>
+                                        <CardBody className="flex flex-row min-h-[200px]self-stretch">
+                                            <div className="py-4 flex flex-row w-full">
+                                                <div className="flex flex-col items-center pr-5">
+                                                    {
+                                                        posDecFields.map((posDecField:any,posDecIdx:any) => {
+
+                                                            return(
+                                                                <div key={posDecField.id}>
+                                                                    <Button type="button" onClick={() =>setSelectedDecTab(posDecIdx)}
+                                                                        variant={selectedDecTab === posDecIdx ? "bordered" : "flat"}
+                                                                        size="sm" className=" font-mono text-xs -p-1"
+                                                                    >
+                                                                        #{posDecIdx + 1}
+                                                                    </Button>
+                                                                </div>
+                                                            )
+                                                        })
+                                                    }
+
+                                                </div>
+                                                {posDecFields.map(
+                                                    (posDecField:any, posDecIdx:any) => {
+                                                        return (
+                                                            <div key={posDecField.id} className={`flex flex-col w-full ${selectedDecTab === posDecIdx ? "" : "hidden"}`}>
+                                                                <Input
+                                                                className="hidden"
+                                                                defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.dbID}
+                                                                {...register(`expand.possibleDecisions[${posDecIdx}].dbID`)}/>
+                                                                <Textarea
+                                                                    maxRows={6}
+                                                                    minRows={6}
+                                                                    variant="bordered"
+                                                                    radius="sm"
+                                                                    label="Decision Content"
+                                                                    defaultValue={copiedData.expand?.possibleDecisions?.[posDecIdx]?.decisionContent}
+                                                                    {...register(`expand.possibleDecisions[${posDecIdx}].decisionContent`)}
+                                                                />
+                                                                <Button
+                                                                    color="secondary"
+                                                                    radius="sm"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setserverDecToDelPush(old => [...old, copiedData.expand?.possibleDecisions?.[posDecIdx]])
+                                                                        posDecRemove(posDecIdx)
+                                                                        copiedData.expand.possibleDecisions.splice(posDecIdx,1)
+                                                                    // setValue(`expand.possibleDecisions`, [...acquiredData.slice(0, posDecIdx), ...acquiredData.slice(posDecIdx + 1)])
+                                                                }}>
+                                                                    Delete
+                                                                </Button>
+                                                                <RequirementGates
+                                                                    reqType="possibleDecisions"
+                                                                    parentIdx={posDecIdx}
+                                                                    control={control}
+                                                                    watcher={formWatch}
+                                                                    shotID={shotID}
+                                                                />
+                                                            </div>
+                                                        )
+                                                    }
+                                                )}
+                                            </div>
+                                        </CardBody>
+                                        <CardFooter>
+                                            <p>Double check the contents, big man.</p>
+                                        </CardFooter>
+                                </Card>
+                            </div>
+                        </div>
                     </CardBody>
-                    <Divider/>
-                    <CardFooter>
-                        <Button className="mr-4" radius="none" color="primary" size="lg" type="submit" variant="solid">Submit Changes</Button>
-                        <p className=" text-xs ">Sequence #{sequenceData?.sequenceNum} - Scene #{sceneData?.sceneNum}</p>
-                        <p className=" text-xs ">{isFetching && "Is Fetching"}</p>
-                        <p className=" text-xs ">{isRefetching && "Is Re-Fetching"}</p>
-                    </CardFooter>
+                    </ScrollShadow>
                 </Card>
                 </form>
                 </FormProvider>
-                <div>
+                {/* <div>
                     {
                         isSubmitting && <p>Is Submitting</p>
                     }
@@ -593,8 +772,8 @@ export function ShotSub ({shotID}:{shotID:string}) {
                         isSubmitted && <p>Is Submitted</p>
                     }
                     <p>{JSON.stringify(serverNarrToDelPush)}</p>
-                </div>
-                <div className="flex flex-row max-w-[20vw]">
+                </div> */}
+                {/* <div className="flex flex-row max-w-[20vw]">
                     {
                         data &&
                         <pre className=" text-xs  border-r-2 pr-4">{JSON.stringify(data, null, 1)}</pre>
@@ -607,7 +786,29 @@ export function ShotSub ({shotID}:{shotID:string}) {
                         copiedData &&
                         <pre className=" text-xs pr-2 pl-4">{JSON.stringify(formWatch, null, 2)}</pre>
                     }
-                </div>
+                </div> */}
+            </div>
+        )
+    } else if (isFetching) {
+        return (
+            <div className="flex flex-col align-middle justify-center h-full bg-gradient-to-br from-zinc-800 to-zinc-950">
+                <p className=' font-mono text-2xl text-center font-semibold text-slate-600'>Fetching Data...</p>
+            </div>
+            
+        )
+    }
+    else if (isLoading) {
+        return (
+            <div className="flex flex-col align-middle justify-center h-full bg-gradient-to-br from-zinc-800 to-zinc-950">
+                <p className=' font-mono text-2xl text-center font-semibold text-slate-600'>Is Loading...</p>
+            </div>
+            
+        )
+    }
+    else {
+        return (
+            <div className="flex flex-col align-middle justify-center h-full bg-gradient-to-br from-zinc-800 to-zinc-950">
+                <p className=' font-mono text-2xl text-center font-semibold text-slate-600'>No Shot Selected</p>
             </div>
         )
     }
@@ -643,10 +844,10 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
     }, [copiedData.expand, parentIdx, reqGateUpdate, reqType])
 
     return (
-        <div className="py-2">
+        <div className="py-4">
             <div className="flex flex-row justify-between items-end ">
                 <div className="mb-4">
-                    <h3 className=" font-semibold">Requirements</h3>
+                    <h3 className=" font-semibold pl-8">Requirements</h3>
                 </div>
                 <div>
                     <Button color="primary" type="button" onClick={() => reqGateAppend({
@@ -677,8 +878,8 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
                                         defaultValue={requirementData?.[reqGateIdx]?.dbID || "new"}
                                         {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].dbID`)}
                                     />
-                                    <div className=" w-1/12 -mr-2 align-middle self-center">
-                                        <p className=" font-bold text-md -rotate-90 invisible">
+                                    <div className=" w-1/12 -mr-4 align-middle self-center">
+                                        <p className="-ml-4 font-bold text-xs -rotate-90 invisible">
                                             ITEM
                                         </p>
                                     </div>
@@ -707,8 +908,8 @@ function RequirementGates ({reqType, parentIdx, control, watcher, mainData, shot
                                         defaultValue={requirementData?.[reqGateIdx]?.dbID || "new"}
                                         {...register(`expand.${reqType}.[${parentIdx}].expand.requirements.[${reqGateIdx}].dbID`)}
                                     />
-                                    <div className=" w-1/12 -mr-2 align-middle self-center pb-10">
-                                        <p className=" font-bold text-md -rotate-90">
+                                    <div className=" w-1/12 -mr-4 align-middle self-center pb-10">
+                                        <p className="-ml-4 text-xs font-bold -rotate-90">
                                             AND
                                         </p>
                                     </div>
@@ -766,7 +967,7 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
                 <div className="flex flex-col w-full">
                     {
                         reqItemFields.map((reqItemField:any, reqItemIdx) => {
-                            let selected = watcher.expand[reqType][grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems?.[reqItemIdx]?.category
+                            let selected = watcher?.expand?.[reqType]?.[grandParentIdx]?.expand?.requirements[gateIdx]?.expand?.requirementItems?.[reqItemIdx]?.category
 
                             let options:any[] = []
                             if (selected === "inventory") {
@@ -805,7 +1006,6 @@ function RequirementItem ({reqType, grandParentIdx, gateIdx, watcher, control, g
                                 "dbID" : "new",
                                 reqItem
                             })
-                            console.log(reqItemFields.length);
                         }}
                             variant={"bordered"} size={"sm"}>+ Item</Button>
                     }
@@ -849,6 +1049,7 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
             <Select
                 radius="none"
                 label="Category"
+                size="sm"
                 selectedKeys={[useSelected]}
                 className="w-2/3"
                 id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].category`}
@@ -881,6 +1082,7 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                         return (
                             <Select
                                 radius="none"
+                                size="sm"
                                 selectedKeys={[useInventory]}
                                 defaultSelectedKeys={[useInventory]}
                                 id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].itemRequired`}
@@ -919,6 +1121,7 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                         return (
                             <Select
                                 radius="none"
+                                size="sm"
                                 id={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`}
                                 selectedKeys={[useInfection]}
                                 defaultSelectedKeys={[useInfection]}
@@ -950,15 +1153,16 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
                     name={`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].infectionRequired`}
                 />
             </div>
-            <div className='w-2/3'>
+            <div className='w-2/5'>
                 <Controller
                     render={({field} :any) => {
                         return (
                             <Select
                                 // selectedKeys={[useInfection]}
                                 radius="none"
+                                size="sm"
                                 defaultSelectedKeys={[reqItemData?.operator || '=']}
-                                label="Operand"
+                                aria-label="Operand"
                                 {...field}
                             >
                                 {
@@ -980,7 +1184,8 @@ function RequirementItemSelect ({reqType, grandParentIdx, gateIdx, watcher, cont
             <div className='w-1/3'>
                 <Input
                     radius="none"
-                    type="number"
+                    size="sm"
+                    aria-label="amount"
                     defaultValue={reqItemData?.amount || 0}
                     {...register(`expand.${reqType}.[${grandParentIdx}].expand.requirements.[${gateIdx}].expand.requirementItems.[${reqItemIdx}].amount`)}
                 />

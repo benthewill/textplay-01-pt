@@ -58,7 +58,7 @@ export function InputBuild ({fieldName, register, fieldLabel, noLabel = false, d
             return (
                 <div className="py-1 h-full">
                     <select
-                        className="border-2 appearance-none border-gray-200 text-gray-900 text-sm rounded-lg hover:border-slate-400  outline-transparent focus:ring-blue-500 focus:border-blue-500 block w-full p-3 h-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 divide-y divide-slate-200"
+                        className="border-2 appearance-none border-red-950 text-gray-900 text-sm hover:border-slate-400  outline-transparent focus:ring-blue-500 focus:border-blue-500 block w-full p-3 h-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 divide-y divide-slate-200"
                         defaultValue={defaultValue}
                         {...register(fieldName)}
                         >

@@ -1,12 +1,12 @@
 "use client";
 
 import FlowWithProvider from '@/components/flow/FlowProvider';
-import { SequenceNode } from '@/components/flow/nodes/sequenceNode';
+import { SceneNode } from '@/components/flow/nodes/sceneNode';
 import { ShotInput } from '@/components/shot/ShotInput';
 import { ShotSub } from '@/components/shot/ShotSub';
 import { CurrentUser } from '@/components/user/CurrentUser';
-import { addConnection, getAllSequences } from '@/lib/db/shots';
-import { initEdges, initNodes, initSequenceNodes } from '@/utils/initNodes';
+import { addConnection, getAllSequences, getAllScenesBySequence } from '@/lib/db/shots';
+import { initEdges, initNodes, initSceneNodes, initSequenceNodes } from '@/utils/initNodes';
 import { Button, ScrollShadow } from '@nextui-org/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
@@ -15,12 +15,12 @@ import 'reactflow/dist/style.css';
 import { useEffectOnce } from 'usehooks-ts';
 
 const nodeTypes = {
-    sequenceNode: SequenceNode
+    sceneNode: SceneNode
 }
 
 const initialEdges:any[] = []
 
-export default function Graph(props:any) {
+export default function Graph({params}:any) {
     const queryClient = useQueryClient()
 
     const {mutate:addTargetShot} = useMutation({
@@ -30,15 +30,15 @@ export default function Graph(props:any) {
     })
 
     const {data, isLoading, isError, refetch, isRefetching, isFetching} =  useQuery({
-        queryFn: () => getAllSequences(),
-        queryKey: ["sequences", "all"],
+        queryFn: () => getAllScenesBySequence(params.sequenceID),
+        queryKey: ["scenes", "all"],
         notifyOnChangeProps: "all",
         refetchOnWindowFocus: false
     })
 
     const {data:initialNodes} = useQuery({
-        queryFn: () => initSequenceNodes(data),
-        queryKey: ['indexed', 'nodes', 'sequences'],
+        queryFn: () => initSceneNodes(data),
+        queryKey: ['indexed', 'nodes', 'scenes'],
         enabled: !!data
     })
 
@@ -121,7 +121,7 @@ export default function Graph(props:any) {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     fitView
-                    className="bg-gradient-to-b from-red-950 to-zinc-950"
+                    className="bg-gradient-to-b from-zinc-800 to-black"
                 >
                     <Panel position="top-left" className="">
                         <CurrentUser />
@@ -129,7 +129,7 @@ export default function Graph(props:any) {
                     <Panel position='top-right'>
                         <p className=" text-end text-xl tracking-tight leading-tight">
                             01 - painting pretty.  <br/>
-                            Sequences
+                            Scenes
                         </p>
                     </Panel>
                     <Panel position='bottom-center'>
