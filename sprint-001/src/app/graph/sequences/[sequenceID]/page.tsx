@@ -7,7 +7,7 @@ import { ShotSub } from '@/components/shot/ShotSub';
 import { CurrentUser } from '@/components/user/CurrentUser';
 import { addConnection, getAllSequences, getAllScenesBySequence } from '@/lib/db/shots';
 import { initEdges, initNodes, initSceneNodes, initSequenceNodes } from '@/utils/initNodes';
-import { Button, ScrollShadow } from '@nextui-org/react';
+import { BreadcrumbItem, Breadcrumbs, Button, ScrollShadow } from '@nextui-org/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import ReactFlow, { addEdge, useEdgesState, useNodesState, MiniMap, Background, Controls, applyNodeChanges, applyEdgeChanges, Panel } from 'reactflow';
@@ -35,6 +35,7 @@ export default function Graph({params}:any) {
         notifyOnChangeProps: "all",
         refetchOnWindowFocus: false
     })
+
 
     const {data:initialNodes} = useQuery({
         queryFn: () => initSceneNodes(data),
@@ -95,6 +96,16 @@ export default function Graph({params}:any) {
         queryClient.refetchQueries({queryKey: ["shot", selectedShot]})
     }, [queryClient, selectedShot])
 
+    const refetching = async () => await queryClient.prefetchQuery({queryKey: ["sequences", "all"]})
+    refetching()
+
+    useEffectOnce(() => {
+        const allSequencesData = queryClient.getQueryData(["sequences", "all"])
+        const cachedQueries = queryClient.getQueryCache()
+        console.log(allSequencesData);
+        console.log(cachedQueries);
+    })
+
     useEffect(() => {
         if (initialNodes) {
             setNodes(initialNodes)
@@ -126,11 +137,19 @@ export default function Graph({params}:any) {
                     <Panel position="top-left" className="">
                         <CurrentUser />
                     </Panel>
-                    <Panel position='top-right'>
-                        <p className=" text-end text-xl tracking-tight leading-tight">
-                            01 - painting pretty.  <br/>
-                            Scenes
-                        </p>
+                    <Panel position='top-right' className='flex flex-col'>
+                        <div>
+                            <Breadcrumbs>
+                                <BreadcrumbItem>Sequences</BreadcrumbItem>
+                                <BreadcrumbItem>Test</BreadcrumbItem>
+                            </Breadcrumbs>
+                        </div>
+                        <div>
+                            <p className=" text-end text-xl tracking-tight leading-tight">
+                                01 - painting pretty.  <br/>
+                                Sequences
+                            </p>
+                        </div>
                     </Panel>
                     <Panel position='bottom-center'>
                         <p className=' font-thin'>

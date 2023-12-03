@@ -7,7 +7,7 @@ import { ShotSub } from '@/components/shot/ShotSub';
 import { CurrentUser } from '@/components/user/CurrentUser';
 import { addConnection, getAllSequences } from '@/lib/db/shots';
 import { initEdges, initNodes, initSequenceNodes } from '@/utils/initNodes';
-import { Button, ScrollShadow } from '@nextui-org/react';
+import { BreadcrumbItem, Breadcrumbs, Button, ScrollShadow } from '@nextui-org/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import ReactFlow, { addEdge, useEdgesState, useNodesState, MiniMap, Background, Controls, applyNodeChanges, applyEdgeChanges, Panel } from 'reactflow';
@@ -126,11 +126,18 @@ export default function Graph(props:any) {
                     <Panel position="top-left" className="">
                         <CurrentUser />
                     </Panel>
-                    <Panel position='top-right'>
-                        <p className=" text-end text-xl tracking-tight leading-tight">
-                            01 - painting pretty.  <br/>
-                            Sequences
-                        </p>
+                    <Panel position='top-right' className='flex flex-col'>
+                        <div>
+                            <Breadcrumbs>
+                                <BreadcrumbItem>Sequences</BreadcrumbItem>
+                            </Breadcrumbs>
+                        </div>
+                        <div>
+                            <p className=" text-end text-xl tracking-tight leading-tight">
+                                01 - painting pretty.  <br/>
+                                Sequences
+                            </p>
+                        </div>
                     </Panel>
                     <Panel position='bottom-center'>
                         <p className=' font-thin'>
